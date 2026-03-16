@@ -1,0 +1,13 @@
+root = true
+
+[*.cs]
+
+# Let real compiler errors stay errors.
+# Downgrade analyzer style rules.
+
+dotnet_analyzer_diagnostic.category-Style.severity = suggestion
+dotnet_analyzer_diagnostic.category-Formatting.severity = suggestion
+
+# Optional: keep actual code-quality rules as warnings
+dotnet_analyzer_diagnostic.category-Design.severity = warning
+dotnet_analyzer_diagnostic.category-Usage.severity = warning

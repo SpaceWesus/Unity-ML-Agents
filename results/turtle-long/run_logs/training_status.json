@@ -1,0 +1,65 @@
+{
+    "Turtle": {
+        "checkpoints": [
+            {
+                "steps": 499988,
+                "file_path": "results\\turtle-long\\Turtle\\Turtle-499988.onnx",
+                "reward": 0.9376536954746202,
+                "creation_time": 1773170105.7446852,
+                "auxillary_file_paths": [
+                    "results\\turtle-long\\Turtle\\Turtle-499988.pt"
+                ]
+            },
+            {
+                "steps": 531290,
+                "file_path": "results\\turtle-long\\Turtle\\Turtle-531290.onnx",
+                "reward": 0.9416032963055224,
+                "creation_time": 1773170218.7733946,
+                "auxillary_file_paths": [
+                    "results\\turtle-long\\Turtle\\Turtle-531290.pt"
+                ]
+            },
+            {
+                "steps": 999978,
+                "file_path": "results\\turtle-long\\Turtle\\Turtle-999978.onnx",
+                "reward": 0.9576615304213304,
+                "creation_time": 1773171031.463981,
+                "auxillary_file_paths": [
+                    "results\\turtle-long\\Turtle\\Turtle-999978.pt"
+                ]
+            },
+            {
+                "steps": 1000032,
+                "file_path": "results\\turtle-long\\Turtle\\Turtle-1000032.onnx",
+                "reward": 0.9574637956048814,
+                "creation_time": 1773171031.516683,
+                "auxillary_file_paths": [
+                    "results\\turtle-long\\Turtle\\Turtle-1000032.pt"
+                ]
+            },
+            {
+                "steps": 1000032,
+                "file_path": "results\\turtle-long\\Turtle\\Turtle-1000032.onnx",
+                "reward": null,
+                "creation_time": 1773171895.6169772,
+                "auxillary_file_paths": [
+                    "results\\turtle-long\\Turtle\\Turtle-1000032.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 1000032,
+            "file_path": "results\\turtle-long\\Turtle.onnx",
+            "reward": null,
+            "creation_time": 1773171895.6169772,
+            "auxillary_file_paths": [
+                "results\\turtle-long\\Turtle\\Turtle-1000032.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "1.2.0.dev0",
+        "torch_version": "2.2.2+cu121"
+    }
+}
