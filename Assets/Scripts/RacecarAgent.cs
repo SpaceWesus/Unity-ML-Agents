@@ -3,7 +3,7 @@ using UnityEngine;
 using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
 using Unity.MLAgents.Sensors;
-using System.Collections;
+//using System.Collections;
 
 public class RacecarAgent : Agent
 {
@@ -13,27 +13,20 @@ public class RacecarAgent : Agent
     [SerializeField] private Transform _goal;
 
     [Header("Spawn Settings")]
-    [SerializeField] private Vector3 _carStartPosition = new Vector3(0f, 0f, 0f);
+    [SerializeField] private Vector3 _carStartPosition = new Vector3(0f, 0.15f, 0f);
     [SerializeField] private Vector2 _goalDistanceRange = new Vector2(5f, 30f);
 
     [Header("Reward Settings")]
     //[SerializeField] private float goalReward = 1.0f;
     //[SerializeField] private float wallHitPenalty = -0.05f;
     //[SerializeField] private float wallStayPenaltyPerSecond = -0.01f;
-    //[SerializeField] private float progressRewardScale = 0.01f;
+    [SerializeField] private float progressRewardScale = 0.01f;
     // [SerializeField] private float stepPenalty = -0.001f;
-    /*
-    [SerializeField] private float stuckSpeedThreshold = 0.75f;
-    [SerializeField] private float stuckTimeLimit = 3f;
-    [SerializeField] private float stuckPenalty = -0.25f;
-    */
+    private float _previousDistanceToGoal;
+
 
     [HideInInspector] public int CurrentEpisode = 0;
     [HideInInspector] public float CumulativeReward = 0f;
-
-
-
-    
 
     public override void Initialize()
     {
@@ -58,28 +51,10 @@ public class RacecarAgent : Agent
 
         ResetCar();
         SpawnGoal();
-        //SpawnObjects();
+
+        _previousDistanceToGoal = Vector3.Distance(transform.position, _goal.position);
+
     }
-
-    /* Change this maybe, to spawn within a specific box, right now it randomly gets spawned in a random direction with a random length,  
-    private void SpawnObjects()
-    {
-        transform.SetLocalPositionAndRotation(new Vector3(0f, 0.15f, 0f), Quaternion.identity);
-
-        //Randomize the direction on the Y-axis (angle in degrees)
-        float randomAngle = Random.Range(0f, 360f);
-        Vector3 randomDirection = Quaternion.Euler(0f, randomAngle, 0f) * Vector3.forward;
-
-        // Randomize the distance within the range [1, 2.5]
-        float randomDistance = Random.Range(1f, 2.5f);
-
-        // Calculate the goal's position
-        Vector3 goalPosition = transform.localPosition + randomDirection * randomDistance;
-
-        // Apply the calculated position to the goal
-        _goal.localPosition = new Vector3(goalPosition.x, 0.3f, goalPosition.z);
-    }
-    */
 
     private void ResetCar()
     {
@@ -109,33 +84,8 @@ public class RacecarAgent : Agent
         float randomDistance = Random.Range(_goalDistanceRange.x, _goalDistanceRange.y);
 
         Vector3 goalPosition = _carStartPosition + randomDirection * randomDistance;
-        _goal.position = new Vector3(goalPosition.x, 0.3f, goalPosition.z);
+        _goal.position = new Vector3(goalPosition.x, 1f, goalPosition.z);
     }
-
-
-
-    //OLD Version
-    /* 
-    public override void CollectObservations(VectorSensor sensor)
-    {
-        // The goal's position
-        float goalPosX_normalized = _goal.localPosition.x / 5f;
-        float goalPosZ_normalized = _goal.localPosition.z / 5f;
-
-        // The Racecar's Position
-        float racecarPosX_normalized = transform.localPosition.x / 5f;
-        float racecarPosZ_normalized = transform.localPosition.z / 5f;
-
-        // The Racecar's direction (on the Y-axis)
-        float racecarRotation_normalized = (transform.localRotation.eulerAngles.y / 360f) * 2f - 1f;
-
-        sensor.AddObservation(goalPosX_normalized);
-        sensor.AddObservation(goalPosZ_normalized);
-        sensor.AddObservation(racecarPosX_normalized);
-        sensor.AddObservation(racecarPosZ_normalized);
-        sensor.AddObservation(racecarRotation_normalized);
-    }
-    */
 
     // New version
     public override void CollectObservations(VectorSensor sensor)
@@ -159,6 +109,9 @@ public class RacecarAgent : Agent
             normalizedSteer = _carController.frontLeftCollider.steerAngle / _carController.maxSteeringAngle;
         }
 
+        // The Turtle's direction (on the Y-axis)
+        float normalizedRotation = (transform.localRotation.eulerAngles.y / 360f) * 2f - 1f;
+
         // Observations
         sensor.AddObservation(localGoal.x / 20f);           // 1
         sensor.AddObservation(localGoal.z / 20f);           // 2
@@ -167,43 +120,8 @@ public class RacecarAgent : Agent
         sensor.AddObservation(localVelocity.z / 20f);       // 5
         sensor.AddObservation(normalizedSpeed);             // 6
         sensor.AddObservation(normalizedSteer);             // 7
+        sensor.AddObservation(normalizedRotation);          // 8
     }
-
-    // Old Heuristic
-    /*
-    // This needs to be changed and altered to allow for multiple discrete action branches lowkey
-    public override void Heuristic(in ActionBuffers actionsOut)
-    {
-        // Is this correct? I doubt
-        var discreteActionsOut = actionsOut.DiscreteActions;
-        
-        // Throttle
-        discreteActionsOut[0] = 0; // No Gas/Brake
-        
-        // Steering
-        discreteActionsOut[1] = 0; // No Steering
-
-        // Throttle
-        if (Input.GetKey(KeyCode.W))
-        {
-            discreteActionsOut[0] = 1;
-        }
-        else if (Input.GetKey(KeyCode.S))
-        {
-            discreteActionsOut[0] = 2;
-        }
-        
-        // Steering
-        else if (Input.GetKey(KeyCode.A))
-        {
-            discreteActionsOut[1] = 1;
-        }
-        else if (Input.GetKey(KeyCode.D))
-        {
-            discreteActionsOut[1] = 2;
-        }
-    }
-    */
 
     public override void Heuristic(in ActionBuffers actionsOut)
     {
@@ -228,23 +146,6 @@ public class RacecarAgent : Agent
             discreteActions[1] = 2;
     }
 
-    // Old
-    /*
-    public override void OnActionReceived(ActionBuffers actions)
-    {
-        // Old layover code from turtle... One discrete action per step 
-        // Move the agent using the action
-        MoveAgent(actions.DiscreteActions);
-
-        // Penalty given each step to encourage agent to finish the task quickly
-        AddReward(-2f / MaxStep);
-
-        // Update the cumulative reward after adding the step penalty
-        CumulativeReward = GetCumulativeReward();
-    }
-    */
-
-
     public override void OnActionReceived(ActionBuffers actions)
     {
         var discreteActions = actions.DiscreteActions;
@@ -257,36 +158,17 @@ public class RacecarAgent : Agent
         // Small step penalty
         AddReward(-2f / MaxStep);
 
-        // I dont like any of this
-        /*
         // Reward progress toward the goal
         float currentDistance = Vector3.Distance(transform.position, _goal.position);
-        float distanceDelta = previousDistanceToGoal - currentDistance;
+        float distanceDelta = _previousDistanceToGoal - currentDistance;
         AddReward(distanceDelta * progressRewardScale);
-        previousDistanceToGoal = currentDistance;
+        _previousDistanceToGoal = currentDistance;
 
-        // Stuck penalty
-        float speed = carRb.linearVelocity.magnitude;
-        if (speed < stuckSpeedThreshold)
-        {
-            stuckTimer += Time.deltaTime;
-            if (stuckTimer >= stuckTimeLimit)
-            {
-                AddReward(stuckPenalty);
-                EndEpisode();
-            }
-        }
-        else
-        {
-            stuckTimer = 0f;
-        }
-        */
 
         // Update the cumulative reward after adding the step penalty
         CumulativeReward = GetCumulativeReward();
     }
 
-    // Move Agent (New)
     private void ApplyActions(int throttleAction, int steeringAction)
     {
         _carController.ClearInputs();
@@ -313,27 +195,6 @@ public class RacecarAgent : Agent
                 break;
         }
     }
-
-    /* OLD MOVE AGENT
-    // This needs to be changed and altered to allow for multiple discrete action branches lowkey
-    public void MoveAgent(ActionSegment<int> act)
-    {
-        var action = act[0];
-
-        switch (action)
-        {
-            case 1: // move forward
-                transform.position += transform.forward * _moveSpeed * Time.deltaTime;
-                break;
-            case 2: // Rotate Left
-                transform.Rotate(0f, -_rotationSpeed * Time.deltaTime, 0f);
-                break;
-            case 3: // Rotate Right
-                transform.Rotate(0f, _rotationSpeed * Time.deltaTime, 0f);
-                break;
-        }
-    }
-    */
 
     private void OnTriggerEnter(Collider other)
     {

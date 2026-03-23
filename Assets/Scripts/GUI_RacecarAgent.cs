@@ -1,9 +1,9 @@
 using System;
 using UnityEngine;
 
-public class GUI_TurtleAgent : MonoBehaviour
+public class GUI_RacecarAgent : MonoBehaviour
 {
-    [SerializeField] private TurtleAgent _turtleAgent;
+    [SerializeField] private RacecarAgent _racecarAgent;
     
     private GUIStyle _defaultStyle = new GUIStyle();
     private GUIStyle _positiveStyle = new GUIStyle();
@@ -26,15 +26,16 @@ public class GUI_TurtleAgent : MonoBehaviour
 
     private void OnGUI()
     {
-        string debugEpisode = "Episode: " + _turtleAgent.CurrentEpisode + " - Step: " + _turtleAgent.StepCount;
-        string debugReward = "Reward: " + _turtleAgent.CumulativeReward.ToString(); 
+        string debugEpisode = "Episode: " + _racecarAgent.CurrentEpisode + " - Step: " + _racecarAgent.StepCount;
+        string debugReward = "Reward: " + _racecarAgent.CumulativeReward.ToString(); 
 
         // Select style based on reward value
-        GUIStyle rewardStyle = _turtleAgent.CumulativeReward < 0 ? _negativeStyle : _positiveStyle;
+        GUIStyle rewardStyle = _racecarAgent.CumulativeReward < 0 ? _negativeStyle : _positiveStyle;
 
         // Display the debug text
         GUI.Label(new Rect(20, 20, 500, 30), debugEpisode, _defaultStyle);
         GUI.Label(new Rect(20, 60, 500, 30), debugReward, rewardStyle);
     }
+
 
 }
