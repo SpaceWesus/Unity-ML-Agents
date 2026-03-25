@@ -59,7 +59,7 @@ public class RacecarAgent : Agent
     private void ResetCar()
     {
         // Reset transform
-        transform.SetPositionAndRotation(_carStartPosition, Quaternion.identity);
+        transform.SetLocalPositionAndRotation(_carStartPosition, Quaternion.identity);
 
         // Reset rigidbody
         if (_carRb != null)
@@ -84,7 +84,7 @@ public class RacecarAgent : Agent
         float randomDistance = Random.Range(_goalDistanceRange.x, _goalDistanceRange.y);
 
         Vector3 goalPosition = _carStartPosition + randomDirection * randomDistance;
-        _goal.position = new Vector3(goalPosition.x, 1f, goalPosition.z);
+        _goal.localPosition = new Vector3(goalPosition.x, 1f, goalPosition.z);
     }
 
     // New version
