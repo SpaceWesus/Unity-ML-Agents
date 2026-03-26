@@ -1,0 +1,9 @@
+fileFormatVersion: 2
+guid: 8350e7767eb7d42e5b86c7e445c024c3
+AssetOrigin:
+  serializedVersion: 1
+  productId: 258537
+  packageName: ArcGIS Maps SDK for Unity
+  packageVersion: 2.2.0
+  assetPath: Packages/com.esri.arcgis-maps-sdk/SDK/API/GameEngine/View/ArcGISAttributionChangedEvent.cs
+  uploadId: 832336

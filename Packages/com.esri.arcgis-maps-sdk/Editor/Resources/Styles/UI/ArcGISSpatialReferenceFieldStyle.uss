@@ -1,0 +1,21 @@
+:root {
+	flex-direction: row;
+}
+
+IntegerField {
+	flex-basis: 1px;
+	flex-grow: 1;
+	margin: 0;
+}
+
+IntegerField#wkid {
+	margin-right: 3px;
+}
+
+IntegerField#verticalWKID {
+	margin-left: 3px;
+}
+
+.main-foldout IntegerField > .unity-base-field__label {
+	min-width: auto;
+}

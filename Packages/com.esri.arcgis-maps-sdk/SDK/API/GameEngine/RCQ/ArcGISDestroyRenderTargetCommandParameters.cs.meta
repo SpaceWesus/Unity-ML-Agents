@@ -1,0 +1,9 @@
+fileFormatVersion: 2
+guid: 549641898d76d48a48a917a4f1e0a60a
+AssetOrigin:
+  serializedVersion: 1
+  productId: 258537
+  packageName: ArcGIS Maps SDK for Unity
+  packageVersion: 2.2.0
+  assetPath: Packages/com.esri.arcgis-maps-sdk/SDK/API/GameEngine/RCQ/ArcGISDestroyRenderTargetCommandParameters.cs
+  uploadId: 832336

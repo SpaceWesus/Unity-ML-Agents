@@ -1,0 +1,9 @@
+fileFormatVersion: 2
+guid: 29a289257e21e4bfeb619ad3f75ce3c0
+AssetOrigin:
+  serializedVersion: 1
+  productId: 258537
+  packageName: ArcGIS Maps SDK for Unity
+  packageVersion: 2.2.0
+  assetPath: Packages/com.esri.arcgis-maps-sdk/SDK/API/GameEngine/MapView/ArcGISCamera.cs
+  uploadId: 832336

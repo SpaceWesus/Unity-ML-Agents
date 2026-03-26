@@ -1,0 +1,9 @@
+fileFormatVersion: 2
+guid: 0fb97fed8f80341daa9d5e1bf28798b6
+AssetOrigin:
+  serializedVersion: 1
+  productId: 258537
+  packageName: ArcGIS Maps SDK for Unity
+  packageVersion: 2.2.0
+  assetPath: Packages/com.esri.arcgis-maps-sdk/SDK/API/GameEngine/Geometry/ArcGISGeodeticCurveType.cs
+  uploadId: 832336

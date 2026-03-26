@@ -1,0 +1,65 @@
+#map-type-foldout.main-foldout > #unity-content {
+	align-items: center;
+}
+
+#map-coordinate-system-buttons {
+	align-items: flex-start;
+	flex-direction: row;
+	justify-content: flex-start;
+	margin-left: 10px;
+	margin-top: 2px;
+}
+
+#map-coordinate-system-buttons > VisualElement {
+	flex-grow: 1;
+}
+
+#map-extent-fields {
+	margin-left: 4px;
+}
+
+#button-create-map {
+	height: 24px;
+	margin: 8px 0px;
+	width: 230px
+}
+
+#toggle-enable-manual-selection,
+#toggle-enable-map-extent {
+	margin-top: 3px;
+}
+
+#toggle-override-coordinate-system {
+	margin-left: 18px;
+}
+
+.extent-shape-dimensions-holder {
+	flex-direction: row;
+	margin-left: 3px;
+}
+
+.extent-shape-dimensions-holder #extent-shape-dimensions-label {
+	margin-right: 51px;
+}
+
+.extent-shape-dimensions-holder > DoubleField {
+	flex: 1;
+}
+
+.extent-shape-dimensions-holder > DoubleField > .unity-base-field__label {
+	margin-right: 2px;
+	min-width: 20px;
+}
+
+ArcGISWKIDField {
+	flex: 1;
+}
+
+ArcGISWKIDField TextField {
+	height: 24px;
+	margin-top: 2px;
+}
+
+ArcGISWKIDField .unity-base-text-field__input--single-line {
+	-unity-text-align: middle-center;
+}

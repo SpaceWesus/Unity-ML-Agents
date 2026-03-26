@@ -1,0 +1,9 @@
+fileFormatVersion: 2
+guid: b56f9fd8cb78a4b88af80cf5d34e6cc4
+AssetOrigin:
+  serializedVersion: 1
+  productId: 258537
+  packageName: ArcGIS Maps SDK for Unity
+  packageVersion: 2.2.0
+  assetPath: Packages/com.esri.arcgis-maps-sdk/SDK/API/GameEngine/Layers/ArcGISBuildingSceneLayer.cs
+  uploadId: 832336

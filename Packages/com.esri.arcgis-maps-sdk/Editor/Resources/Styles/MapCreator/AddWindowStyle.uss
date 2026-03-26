@@ -1,0 +1,19 @@
+:root {
+	padding: 10px;
+}
+
+.buttons {
+	align-self: flex-end;
+	flex-direction: row;
+}
+
+.buttons Button {
+	margin-left: 0px;
+	margin-right: 3px;
+	margin-top: 3px;
+	width: 80px;
+}
+
+.align-label Label {
+	margin-right: 32px;
+}

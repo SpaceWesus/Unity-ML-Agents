@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="UnityEngine.UIElements"
+	xmlns:editor="UnityEditor.UIElements"
+	xmlns:esri="Esri.ArcGISMapsSDK.Editor.UI"
+	xsi:noNamespaceSchemaLocation="../../../../../UIElementsSchema/UIElements.xsd"
+	xsi:schemaLocation="
+						UnityEngine.UIElements ../../../../../../UIElementsSchema/UnityEngine.UIElements.xsd
+						UnityEditor.UIElements ../../../../../../UIElementsSchema/UnityEditor.UIElements.xsd
+						UnityEditor.PackageManager.UI ../../../../../../UIElementsSchema/UnityEditor.PackageManager.UI.xsd"
+>
+	<Style src="../../Styles/MapCreator/AddWindowStyle.uss" />
+	<VisualElement class="add-layer-window">
+		<editor:PropertyField binding-path="layerItem.Name" class="align-label" />
+		<editor:PropertyField binding-path="layerItem.Source" class="align-label" />
+		<editor:PropertyField binding-path="layerItem.Type" class="align-label" />
+		<editor:PropertyField binding-path="layerItem.AuthenticationType" class="align-label" />
+		<VisualElement class="buttons">
+			<Button name="clear-button" text="Clear" />
+			<Button name="add-button" text="Add" />
+		</VisualElement>
+	</VisualElement>
+</UXML>

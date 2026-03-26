@@ -1,0 +1,207 @@
+:root {
+	flex-grow: 1;
+}
+
+.elevation-tool {
+	flex-grow: 1;
+	padding: 0;
+}
+
+.elevation-tool ArcGISMapCreatorElevationWidget {
+	flex-grow: 0;
+	margin-right: 4px;
+}
+
+.elevation-tool ArcGISMapCreatorElevationWidget ListView {
+	flex-grow: 1;
+}
+
+.elevation-tool ArcGISMapCreatorElevationWidget ListView .unity-list-view__item:hover {
+	background-color: transparent;
+}
+
+.elevation-tool .elevation-properties-container {
+	padding: 4px 4px 4px 7px;
+    height: 69px;
+	align-self: auto;
+    align-items: flex-start;
+    justify-content: space-between;
+	color: black;
+	border-width: 1px;
+	border-color: #676767;
+	border-radius: 3px;
+	margin: 3px 4px 4px 20px;
+}
+
+.light .elevation-properties-container {
+	color: #090909;
+}
+
+.dark .elevation-properties-container {
+	color: #D2D2D2;
+}
+
+.elevation-tool .elevation-properties-container .title {
+	align-self: flex-start;
+	-unity-font-style: bold;
+}
+
+.light .elevation-tool .elevation-properties-container .title {
+	color: #090909;
+}
+
+.dark .elevation-tool .elevation-properties-container .title {
+	color: #D2D2D2;
+}
+
+.elevation-tool .elevation-properties-container .mesh-modifications {
+	flex-direction: row;
+	width: 100%;
+	height: 14px;
+}
+
+.elevation-tool .elevation-properties-container .mesh-modifications Toggle {
+	margin: 0;
+	padding-left: 8px;
+}
+
+.elevation-tool .elevation-properties-container .mesh-modifications Toggle Label {
+	margin-left: 8px;
+	padding: 0px;
+}
+
+.elevation-tool .elevation-properties-container .mesh-modifications Toggle > * > .unity-toggle__checkmark
+{
+	--unity-colors-toggle_checkmark-background: #F0F0F0;
+}
+
+.elevation-tool .elevation-properties-container .mesh-modifications .spacer {
+	flex-grow: 1;
+}
+
+.elevation-tool .elevation-properties-container .mesh-modifications #open-mesh-modifications-tool Image {
+	width: 14px;
+	height: 14px;
+	opacity: 0.7;
+	margin-right: 3px;
+	align-self: flex-end;
+}
+
+.light .elevation-tool .elevation-properties-container .mesh-modifications #open-mesh-modifications-tool Image {
+
+	--unity-image: resource("Images/MapCreator/OverlayToolbar/Settings_black_48x48");
+}
+
+.dark .elevation-tool .elevation-properties-container .mesh-modifications #open-mesh-modifications-tool Image {
+	--unity-image: resource("Images/MapCreator/OverlayToolbar/Settings_48x48");
+}
+
+.elevation-tool .elevation-properties-container .mesh-modifications #open-mesh-modifications-tool Image:hover {
+	opacity: 1;
+}
+
+.elevation-tool .elevation-properties-container .exaggeration-factor-container {
+	flex-direction: row;
+    justify-content: space-between;
+	height: 18px;
+	padding-left: 6px;
+	width: 100%;
+}
+
+.elevation-tool .elevation-properties-container .exaggeration-factor-label {
+	flex: 0 0 auto;
+    min-width: 132px;
+    height: 14px;
+    font-size: 12px;
+	padding-left: 25px;
+}
+
+.elevation-tool .elevation-properties-container Slider {
+	flex: 1 0;
+	margin-left: 20px;
+    height: 10px;
+}
+
+.elevation-tool .elevation-properties-container Slider .unity-base-slider__tracker {
+	margin: 0px;
+    height: 2px;
+}
+
+.elevation-tool .elevation-properties-container Slider .unity-base-slider__dragger {
+    margin: 0px;
+ }
+
+.elevation-tool .elevation-properties-container FloatField
+{
+	flex: 1;
+	align-self: flex-end;
+	margin-right: 0px;
+	min-width: 20px;
+	max-width: 50px;
+	height: 18px;
+}
+
+.dark .elevation-tool .elevation-properties-container FloatField > FloatInput {
+	background-color: #2A2A2A;
+	border-color: #212121;
+}
+
+.light .elevation-tool .elevation-properties-container FloatField > FloatInput {
+    background-color: #F0F0F0;
+	border-color: #B7B7B7;
+}
+
+.dark .elevation-tool .elevation-properties-container FloatField > FloatInput > TextElement {
+	color: #D2D2D2;
+}
+
+.light .elevation-tool .elevation-properties-container FloatField > FloatInput > TextElement {
+	color: #090909;
+}
+
+.elevation-tool .footer {
+	align-content: center;
+	flex-direction: row;
+	flex-shrink: 0;
+	margin-top: auto;
+	height: 56px;
+	padding-left: 20px;
+	padding-right: 32px;
+}
+
+.elevation-tool .footer .spacer {
+	flex-grow: 1;
+}
+
+.elevation-tool .footer Toggle Label {
+	margin-left: 10px;
+}
+
+.elevation-tool .footer .add-new {
+	align-items: center;
+	flex-direction: row;
+	opacity: 0.7;
+}
+
+.elevation-tool .footer .add-new:hover {
+	opacity: 1;
+}
+
+.elevation-tool .footer .add-new .plus {
+	height: 10px;
+	margin-right: 8px;
+	opacity: 0.7;
+	width: 10px;
+}
+
+.dark .footer .add-new .plus {
+    background-image: resource('Images/MapCreator/Dark/PlusIcon');
+}
+
+.light .footer .add-new .plus {
+    background-image: resource('Images/MapCreator/Light/PlusIcon');
+}
+
+.elevation-tool .footer .add-new TextElement {
+	height: 15px;
+}

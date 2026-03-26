@@ -1,0 +1,9 @@
+fileFormatVersion: 2
+guid: 5a893f1610e5c49eaac38b728eecdefa
+AssetOrigin:
+  serializedVersion: 1
+  productId: 258537
+  packageName: ArcGIS Maps SDK for Unity
+  packageVersion: 2.2.0
+  assetPath: Packages/com.esri.arcgis-maps-sdk/SDK/API/GameEngine/Layers/ArcGISSpatialFeatureFilterSpatialRelationship.cs
+  uploadId: 832336

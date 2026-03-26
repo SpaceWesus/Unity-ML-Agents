@@ -1,0 +1,9 @@
+fileFormatVersion: 2
+guid: 1fd8f0549be5d4625b5fb59a39d062fb
+AssetOrigin:
+  serializedVersion: 1
+  productId: 258537
+  packageName: ArcGIS Maps SDK for Unity
+  packageVersion: 2.2.0
+  assetPath: Packages/com.esri.arcgis-maps-sdk/SDK/API/GameEngine/Extent/ArcGISExtentRectangle.cs
+  uploadId: 832336

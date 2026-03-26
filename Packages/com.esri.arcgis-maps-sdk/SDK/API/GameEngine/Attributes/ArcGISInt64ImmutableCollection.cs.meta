@@ -1,0 +1,9 @@
+fileFormatVersion: 2
+guid: 052430bf68a6a4706a9f1ec26db087bf
+AssetOrigin:
+  serializedVersion: 1
+  productId: 258537
+  packageName: ArcGIS Maps SDK for Unity
+  packageVersion: 2.2.0
+  assetPath: Packages/com.esri.arcgis-maps-sdk/SDK/API/GameEngine/Attributes/ArcGISInt64ImmutableCollection.cs
+  uploadId: 832336

@@ -1,0 +1,9 @@
+fileFormatVersion: 2
+guid: 15c7d28056b4e4a1088d2b4c266390a1
+AssetOrigin:
+  serializedVersion: 1
+  productId: 258537
+  packageName: ArcGIS Maps SDK for Unity
+  packageVersion: 2.2.0
+  assetPath: Packages/com.esri.arcgis-maps-sdk/SDK/API/GameEngine/Layers/BuildingScene/ArcGISBuildingSceneSublayerImmutableCollection.cs
+  uploadId: 832336

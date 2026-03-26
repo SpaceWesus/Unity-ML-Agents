@@ -1,0 +1,9 @@
+fileFormatVersion: 2
+guid: d36564f678e2b402595d420cf7d6a82e
+AssetOrigin:
+  serializedVersion: 1
+  productId: 258537
+  packageName: ArcGIS Maps SDK for Unity
+  packageVersion: 2.2.0
+  assetPath: Packages/com.esri.arcgis-maps-sdk/SDK/API/GameEngine/Layers/BuildingScene/ArcGISBuildingAttributeFilter.cs
+  uploadId: 832336

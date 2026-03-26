@@ -1,0 +1,9 @@
+fileFormatVersion: 2
+guid: ae24adbff6c774dcc962817105f31c2f
+AssetOrigin:
+  serializedVersion: 1
+  productId: 258537
+  packageName: ArcGIS Maps SDK for Unity
+  packageVersion: 2.2.0
+  assetPath: Packages/com.esri.arcgis-maps-sdk/SDK/API/GameEngine/Geometry/ArcGISPointBuilder.cs
+  uploadId: 832336

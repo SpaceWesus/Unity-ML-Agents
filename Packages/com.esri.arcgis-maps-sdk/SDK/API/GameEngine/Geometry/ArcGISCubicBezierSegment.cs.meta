@@ -1,0 +1,9 @@
+fileFormatVersion: 2
+guid: 97642ec347bb64dadb56a81c2b1d3f66
+AssetOrigin:
+  serializedVersion: 1
+  productId: 258537
+  packageName: ArcGIS Maps SDK for Unity
+  packageVersion: 2.2.0
+  assetPath: Packages/com.esri.arcgis-maps-sdk/SDK/API/GameEngine/Geometry/ArcGISCubicBezierSegment.cs
+  uploadId: 832336

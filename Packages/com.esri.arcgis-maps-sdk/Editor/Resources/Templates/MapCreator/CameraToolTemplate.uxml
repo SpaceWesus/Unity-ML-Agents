@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UXML
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="UnityEngine.UIElements"
+	xmlns:editor="UnityEditor.UIElements"
+	xsi:noNamespaceSchemaLocation="../../../../../UIElementsSchema/UIElements.xsd"
+	xsi:schemaLocation="
+						UnityEngine.UIElements ../../../../../../UIElementsSchema/UnityEngine.UIElements.xsd
+						UnityEditor.UIElements ../../../../../../UIElementsSchema/UnityEditor.UIElements.xsd
+						UnityEditor.PackageManager.UI ../../../../../../UIElementsSchema/UnityEditor.PackageManager.UI.xsd"
+>
+	<Style src="../../Styles/MapCreator/CameraToolStyle.uss" />
+	<ScrollView>
+		<VisualElement class="tool-holder">
+			<Foldout class="main-foldout" text="Camera Location">
+				<VisualElement class="layout-row">
+					<Label text="Editor Mode View"/>
+					<Button name="button-transfer-to-camera" text="Align with View"/>
+				</VisualElement>
+				<Foldout class="sub-foldout" text="Position">
+					<editor:PropertyField label="" binding-path="position"/>
+				</Foldout>
+				<Foldout class="sub-foldout" text="Rotation">
+					<editor:DoubleField label="Heading" binding-path="rotation.Heading" name="cam-rotation-heading-text"/>
+					<editor:DoubleField label="Pitch" binding-path="rotation.Pitch" name="cam-rotation-pitch-text"/>
+					<editor:DoubleField label="Roll" binding-path="rotation.Roll" name="cam-rotation-roll-text"/>
+				</Foldout>
+			</Foldout>
+		</VisualElement>
+		<VisualElement class="create-button-holder">
+			<Button class="button-create" name="button-create-camera" text="Create Camera"></Button>
+		</VisualElement>
+	</ScrollView>
+</UXML>
