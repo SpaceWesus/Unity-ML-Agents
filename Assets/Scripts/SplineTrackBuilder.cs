@@ -25,6 +25,14 @@ public class SplineTrackBuilder : MonoBehaviour
     [SerializeField] private float wallThickness = 0.4f;
     [SerializeField] private Material wallMaterial;
     [SerializeField] private float wallYOffset = 1f; // center of wall above road
+    [SerializeField] private PhysicsMaterial wallPhysicsMaterial;
+
+    [Header("Checkpoints")]
+    [SerializeField] private bool generateCheckpoints = true;
+    [SerializeField] private float checkpointSpacing = 10f;
+    [SerializeField] private float checkpointHeight = 3f;
+    [SerializeField] private float checkpointThickness = 0.5f;
+    [SerializeField] private string checkpointTag = "Checkpoint";
 
     [Header("Hierarchy")]
     [SerializeField] private string roadObjectName = "Generated Road";
@@ -55,6 +63,10 @@ public class SplineTrackBuilder : MonoBehaviour
 
         if (generateWalls)
             GenerateWallSegments(samples);
+
+        if (generateCheckpoints)
+            GenerateCheckpoints(samples);
+        
     }
 
     [ContextMenu("Clear Generated")]
@@ -271,6 +283,12 @@ public class SplineTrackBuilder : MonoBehaviour
             r.sharedMaterial = wallMaterial;
         }
 
+        Collider col = wall.GetComponent<Collider>();
+        if (col != null)
+        {
+            col.material = wallPhysicsMaterial;
+        }
+
         Vector3 delta = end - start;
         float length = delta.magnitude;
         if (length < 0.01f)
@@ -285,6 +303,45 @@ public class SplineTrackBuilder : MonoBehaviour
         wall.transform.position = center;
         wall.transform.rotation = Quaternion.LookRotation(forward, up);
         wall.transform.localScale = new Vector3(wallThickness, wallHeight, length);
+    }
+
+    private void GenerateCheckpoints(List<TrackSample> samples)
+    {
+        GameObject cpParent = new GameObject("Generated Checkpoints");
+        cpParent.transform.SetParent(transform, false);
+
+        float accumulatedDistance = 0f;
+
+        for (int i = 1; i < samples.Count; i++)
+        {
+            float segmentDist = Vector3.Distance(samples[i - 1].position, samples[i].position);
+            accumulatedDistance += segmentDist;
+
+            if (accumulatedDistance < checkpointSpacing)
+                continue;
+
+            accumulatedDistance = 0f;
+
+            TrackSample s = samples[i];
+
+            GameObject checkpoint = new GameObject("Checkpoint_" + i);
+            checkpoint.transform.SetParent(cpParent.transform, false);
+
+            BoxCollider col = checkpoint.AddComponent<BoxCollider>();
+            col.isTrigger = true;
+
+            checkpoint.tag = checkpointTag;
+
+            float width = trackWidth;
+
+            col.size = new Vector3(width, checkpointHeight, checkpointThickness);
+
+            // Position
+            checkpoint.transform.position = s.position + s.up * (checkpointHeight * 0.5f);
+
+            // Rotate so it spans left-right
+            checkpoint.transform.rotation = Quaternion.LookRotation(s.tangent, s.up);
+        }
     }
 
     private void SafeDestroy(GameObject go)
