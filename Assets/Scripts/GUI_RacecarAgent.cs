@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class GUI_RacecarAgent : MonoBehaviour
 {
-    [SerializeField] private RacecarAgent _racecarAgent;
+    [SerializeField] private RacecarAgentV2 _racecarAgent;
     
     private GUIStyle _defaultStyle = new GUIStyle();
     private GUIStyle _positiveStyle = new GUIStyle();
