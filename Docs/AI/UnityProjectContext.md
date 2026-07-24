@@ -4,7 +4,7 @@
 
 ## Summary
 
-Turtle is a Unity experimentation project containing ML-Agents turtle/racecar work and several independent scenes. `Assets/Scenes/Homies.unity` is the combat laboratory for Monarch Protocol. `Assets/Scenes/Ecosystem Slice.unity` is a persistent living-world vertical slice for hunters, guilds, gear movesets, autonomous missions, relationships, memories, and save/load.
+Turtle is a Unity experimentation project containing ML-Agents turtle/racecar work and several independent scenes. `Assets/Scenes/Homies.unity` is the original combat laboratory for Monarch Protocol. `Assets/Scenes/Ecosystem Slice.unity` is a persistent living-world vertical slice for hunters, guilds, gear movesets, autonomous missions, relationships, memories, and save/load. `Assets/Scenes/Weapons Testing.unity` is the production-oriented successor to Homies for combat development.
 
 ## Confirmed environment
 
@@ -19,11 +19,16 @@ Turtle is a Unity experimentation project containing ML-Agents turtle/racecar wo
 - First-party runtime scripts are under `Assets/Scripts`.
 - Existing Turtle and racecar scenes use scene-bound MonoBehaviours and ML-Agents.
 - Homies gameplay uses small, composed MonoBehaviours under `Assets/Scripts/Homies`.
+- Weapons Testing uses shared `Turtle.Combat` capabilities for human- and
+  AI-commanded hunters. Player and AI differ only by command source.
 - Ecosystem domain models and utility simulation are plain serializable C# under
   `Assets/Scripts/Ecosystem`; scene presentation and input are separate
   MonoBehaviours.
 - Ecosystem gear is authored as `EcosystemGearDefinition` ScriptableObjects
   under `Assets/Data/Ecosystem`.
+- `Assets/ExplosiveLLC` contains the RPG Character Mecanim animation pack.
+  Its materials are URP-converted, but its legacy Input Manager demo controller
+  is not part of Turtle's gameplay architecture.
 - Long-term design direction is recorded in `Docs/Game-Vision.md`: persistent unique hunters, reciprocal player/AI agency, gear-granted movesets, guild politics, memories, and autonomous world activity.
 - No first-party `.asmdef` boundary is present; scripts compile into `Assembly-CSharp`.
 - Vendor/sample content lives under `Assets/PROMETEO - Car Controller`, `Assets/Samples`, and embedded packages.
@@ -37,6 +42,9 @@ Turtle is a Unity experimentation project containing ML-Agents turtle/racecar wo
 - Static Homies dungeon dressing and the complete Ecosystem Slice environment
   are serialized in their scene assets. Runtime generation is reserved for
   dynamic actors and simulation-driven state.
+- The Weapons Testing arena, spawn points, humanoid agents, and target dummies
+  are serialized in the scene. Its editor builder runs only from explicit
+  `Turtle > Combat` menu commands.
 - Ecosystem world state saves to
   `Application.persistentDataPath/ecosystem-slice-v1.json`.
 

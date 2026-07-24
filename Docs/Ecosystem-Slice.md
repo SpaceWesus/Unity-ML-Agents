@@ -46,6 +46,20 @@ These procedural bodies are a dependency-free prototype layer. They can later
 be replaced by imported humanoid models and animation clips without changing
 the persistent hunter or simulation data.
 
+### ExplosiveLLC animation pack
+
+The imported RPG Character Mecanim pack under `Assets/ExplosiveLLC` contains a
+humanoid character, unarmed animations, and two-handed sword animations. Its
+demo materials originally used the Built-in Standard shader; they have been
+converted to URP Lit with:
+
+`Turtle > Rendering > Convert ExplosiveLLC Materials to URP`
+
+The converter is scoped to the vendor folder and is safe to run again after a
+package update. The pack's demo controllers expect legacy Input Manager presets.
+Ecosystem Slice should reuse the model and animation clips while retaining
+Turtle's existing Input System and gameplay controllers.
+
 ## Persistence boundary
 
 The district, guild halls, dungeon gates, training yard, camera, player setup,

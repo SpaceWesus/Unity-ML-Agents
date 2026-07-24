@@ -9,18 +9,12 @@ using UnityEngine.SceneManagement;
 
 namespace Turtle.Ecosystem.Editor
 {
-    [InitializeOnLoad]
     public static class EcosystemSliceSceneBuilder
     {
         private const string EcosystemScenePath = "Assets/Scenes/Ecosystem Slice.unity";
         private const string HomiesScenePath = "Assets/Scenes/Homies.unity";
         private const string MaterialFolder = "Assets/Materials/Ecosystem";
         private const string DataFolder = "Assets/Data/Ecosystem";
-
-        static EcosystemSliceSceneBuilder()
-        {
-            EditorApplication.delayCall += EnsureRequestedScenes;
-        }
 
         [MenuItem("Turtle/Ecosystem/Rebuild Requested Scenes")]
         public static void RebuildRequestedScenes()
@@ -38,31 +32,6 @@ namespace Turtle.Ecosystem.Editor
             EnsureBuildSettings();
             AssetDatabase.SaveAssets();
             Debug.Log("Ecosystem Slice scene and persistent Homies arena rebuilt.");
-        }
-
-        private static void EnsureRequestedScenes()
-        {
-            if (EditorApplication.isPlayingOrWillChangePlaymode)
-            {
-                return;
-            }
-
-            try
-            {
-                EnsureFolders();
-                var gear = EnsureGearAssets();
-                PersistHomiesArena();
-                if (!AssetDatabase.LoadAssetAtPath<SceneAsset>(EcosystemScenePath))
-                {
-                    BuildEcosystemScene(gear, false);
-                }
-                EnsureBuildSettings();
-                AssetDatabase.SaveAssets();
-            }
-            catch (Exception exception)
-            {
-                Debug.LogError($"Could not author Ecosystem Slice scenes: {exception}");
-            }
         }
 
         private static void EnsureFolders()
