@@ -620,6 +620,8 @@ namespace Turtle.Combat.Editor
                     lunge = 1.1f,
                     animationDuration = 1.2f,
                     animationState = "Attack Light",
+                    movementMode = AttackMovementMode.Mobile,
+                    dodgeCancelMode = AttackDodgeCancelMode.DodgeAllowed,
                     hitboxWindows = CreateLightAttackHitboxTimeline()
                 },
                 new AttackDefinition
@@ -634,6 +636,8 @@ namespace Turtle.Combat.Editor
                     lunge = 1.5f,
                     animationDuration = 1.2f,
                     animationState = "Attack Heavy",
+                    movementMode = AttackMovementMode.Anchored,
+                    dodgeCancelMode = AttackDodgeCancelMode.DodgeAllowed,
                     hitboxWindows = CreateHeavyAttackHitboxTimeline()
                 });
             var serializedMoveSet = new SerializedObject(moveSet);

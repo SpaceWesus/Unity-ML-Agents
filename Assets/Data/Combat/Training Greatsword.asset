@@ -24,6 +24,8 @@ MonoBehaviour:
     lunge: 1.1
     animationDuration: 1.2
     animationState: Attack Light
+    movementMode: 0
+    dodgeCancelMode: 0
     hitboxWindows:
     - startNormalized: 0.28
       endNormalized: 0.4
@@ -51,6 +53,8 @@ MonoBehaviour:
     lunge: 1.5
     animationDuration: 1.2
     animationState: Attack Heavy
+    movementMode: 1
+    dodgeCancelMode: 0
     hitboxWindows:
     - startNormalized: 0.26
       endNormalized: 0.42

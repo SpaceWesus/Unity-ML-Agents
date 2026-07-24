@@ -53,6 +53,9 @@ namespace Turtle.Combat
         public bool IsBusy => Time.time < actionEndsAt;
         public bool IsIntangible => Time.time >= dodgeInvulnerableFrom && Time.time < dodgeInvulnerableUntil;
         public bool IsAttacking => isAttacking;
+        public bool CanDodge => IsAlive &&
+                                !targetDummy &&
+                                (!IsBusy || (isAttacking && currentAttack.AllowsDodgeCancel));
         public float AttackActiveAt => attackActiveAt;
         public AttackDefinition CurrentAttack => currentAttack;
         public WeaponMoveSetDefinition MoveSet => moveSet;
@@ -95,7 +98,11 @@ namespace Turtle.Combat
             }
 
             var movementDirection = ApplyMovement(command, deltaTime);
-            if (!IsBusy && command.Action != CombatAction.None)
+            if (command.Action == CombatAction.Dodge && CanDodge)
+            {
+                BeginAction(command.Action, command.Facing, movementDirection);
+            }
+            else if (!IsBusy && command.Action != CombatAction.None)
             {
                 BeginAction(command.Action, command.Facing, movementDirection);
             }
@@ -169,6 +176,7 @@ namespace Turtle.Combat
             dodgeInvulnerableFrom = 0f;
             dodgeInvulnerableUntil = 0f;
             attackActiveAt = 0f;
+            currentAttack = default;
             isAttacking = false;
             verticalVelocity = 0f;
             characterController.enabled = true;
@@ -181,15 +189,23 @@ namespace Turtle.Combat
             var right = Vector3.Cross(Vector3.up, facing).normalized;
             var movement = facing * command.Movement.y + right * command.Movement.x;
             movement = Vector3.ClampMagnitude(movement, 1f);
+            var movementLocked = IsBusy && (!isAttacking || !currentAttack.AllowsMovement);
 
-            if (!IsBusy && movement.sqrMagnitude > 0.001f)
+            if (!movementLocked && isAttacking && facing.sqrMagnitude > 0.001f)
+            {
+                transform.rotation = Quaternion.Slerp(
+                    transform.rotation,
+                    Quaternion.LookRotation(facing),
+                    rotationSpeed * deltaTime);
+            }
+            else if (!movementLocked && movement.sqrMagnitude > 0.001f)
             {
                 transform.rotation = Quaternion.Slerp(
                     transform.rotation,
                     Quaternion.LookRotation(movement),
                     rotationSpeed * deltaTime);
             }
-            else if (!IsBusy && facing.sqrMagnitude > 0.001f)
+            else if (!movementLocked && facing.sqrMagnitude > 0.001f)
             {
                 transform.rotation = Quaternion.Slerp(
                     transform.rotation,
@@ -200,7 +216,7 @@ namespace Turtle.Combat
             verticalVelocity = characterController.isGrounded
                 ? -1f
                 : verticalVelocity + Physics.gravity.y * deltaTime;
-            var speed = IsBusy ? 0f : moveSpeed;
+            var speed = movementLocked ? 0f : moveSpeed;
             characterController.Move((movement * speed + Vector3.up * verticalVelocity) * deltaTime);
             animationView?.SetLocomotion(movement.magnitude * speed, IsBusy);
             return movement;
@@ -211,6 +227,14 @@ namespace Turtle.Combat
             if (actionRoutine != null)
             {
                 StopCoroutine(actionRoutine);
+                actionRoutine = null;
+            }
+            if (isAttacking)
+            {
+                weaponHitbox?.EndAttack();
+                isAttacking = false;
+                attackActiveAt = 0f;
+                currentAttack = default;
             }
 
             if (facing.sqrMagnitude > 0.001f)
@@ -266,6 +290,8 @@ namespace Turtle.Combat
             }
             weaponHitbox?.EndAttack();
             isAttacking = false;
+            attackActiveAt = 0f;
+            currentAttack = default;
             actionRoutine = null;
         }
 
@@ -310,6 +336,8 @@ namespace Turtle.Combat
             }
             weaponHitbox?.EndAttack();
             isAttacking = false;
+            attackActiveAt = 0f;
+            currentAttack = default;
             dodgeInvulnerableFrom = 0f;
             dodgeInvulnerableUntil = 0f;
         }

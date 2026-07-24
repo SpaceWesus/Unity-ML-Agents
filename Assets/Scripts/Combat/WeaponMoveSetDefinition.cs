@@ -18,6 +18,8 @@ namespace Turtle.Combat
             lunge = 1.1f,
             animationDuration = 1.2f,
             animationState = "Attack Light",
+            movementMode = AttackMovementMode.Mobile,
+            dodgeCancelMode = AttackDodgeCancelMode.DodgeAllowed,
             hitboxWindows = new[]
             {
                 new AttackHitboxWindow
@@ -55,6 +57,8 @@ namespace Turtle.Combat
             lunge = 1.45f,
             animationDuration = 1.2f,
             animationState = "Attack Heavy",
+            movementMode = AttackMovementMode.Anchored,
+            dodgeCancelMode = AttackDodgeCancelMode.DodgeAllowed,
             hitboxWindows = new[]
             {
                 new AttackHitboxWindow

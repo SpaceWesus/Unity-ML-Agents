@@ -18,6 +18,18 @@ namespace Turtle.Combat
         Dodge
     }
 
+    public enum AttackMovementMode
+    {
+        Mobile,
+        Anchored
+    }
+
+    public enum AttackDodgeCancelMode
+    {
+        DodgeAllowed,
+        Committed
+    }
+
     [Serializable]
     public struct AttackHitboxWindow
     {
@@ -43,8 +55,15 @@ namespace Turtle.Combat
         [Min(0f)] public float lunge;
         [Min(0.05f)] public float animationDuration;
         public string animationState;
+        [Tooltip("Mobile attacks preserve command-driven movement. Anchored attacks lock locomotion until they finish or are cancelled.")]
+        public AttackMovementMode movementMode;
+        [Tooltip("DodgeAllowed attacks may be interrupted by a dodge at any point. Committed attacks must finish unless another combat effect interrupts them.")]
+        public AttackDodgeCancelMode dodgeCancelMode;
         [Tooltip("Ordered offensive box volumes activated over normalized animation time.")]
         public AttackHitboxWindow[] hitboxWindows;
+
+        public bool AllowsMovement => movementMode == AttackMovementMode.Mobile;
+        public bool AllowsDodgeCancel => dodgeCancelMode == AttackDodgeCancelMode.DodgeAllowed;
 
         public float FirstHitboxStartNormalized
         {

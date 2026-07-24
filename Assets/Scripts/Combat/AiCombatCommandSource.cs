@@ -26,7 +26,7 @@ namespace Turtle.Combat
             }
 
             nextDecisionAt = Time.time + decisionInterval + Random.Range(-0.02f, 0.02f);
-            if (!self.IsBusy &&
+            if (self.CanDodge &&
                 Time.time >= nextDodgeAt &&
                 TryFindIncomingAttack(self, out var threat, out var dodgeMovement) &&
                 Random.value <= dodgeChanceWhenThreatened)

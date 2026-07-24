@@ -37,6 +37,12 @@ damageable body volumes and move-specific offensive volumes:
   does not deal duplicate damage. A miss, successful dodge, future block, or
   interruption before contact deals no damage.
 - `AttackDefinition.range` and `arc` are AI planning data, not damage checks.
+- Each attack also declares its action policy. `Mobile` attacks preserve
+  command-driven movement while their attack animation remains active;
+  `Anchored` attacks lock locomotion. `DodgeAllowed` attacks can be cancelled
+  immediately into a dodge by either a player or AI agent. These enum defaults
+  intentionally make newly-authored attacks mobile and dodge-cancellable unless
+  a move is explicitly designed as a commitment.
 
 The player hit marker listens to the same confirmed-contact event used by the
 combat system; it never appears for a proximity test or a whiff.
