@@ -18,17 +18,28 @@ namespace Turtle.Combat
         [SerializeField, Min(0f)] private float moveSpeed = 6.5f;
         [SerializeField, Min(0f)] private float rotationSpeed = 18f;
         [SerializeField, Min(0f)] private float dodgeSpeed = 16f;
-        [SerializeField, Min(0.1f)] private float dodgeDuration = 0.25f;
+        [SerializeField, Min(0.1f)] private float dodgeTravelDuration = 0.5f;
+        [SerializeField, Min(0.1f)] private float dodgeActionDuration = 1.2f;
+        [SerializeField, Min(0f)] private float dodgeInvulnerabilityStart = 0.04f;
+        [SerializeField, Min(0.01f)] private float dodgeInvulnerabilityDuration = 0.58f;
+        [SerializeField, Min(0f)] private float hitReactionDuration = 0.34f;
         [SerializeField] private WeaponMoveSetDefinition moveSet;
 
         [Header("References")]
         [SerializeField] private CharacterController characterController;
         [SerializeField] private CombatAnimationView animationView;
         [SerializeField] private CombatAgentDriver commandDriver;
+        [SerializeField] private CombatWeaponHitbox weaponHitbox;
+        [SerializeField] private CombatHurtbox hurtbox;
 
         private float currentHealth;
         private float verticalVelocity;
         private float actionEndsAt;
+        private float dodgeInvulnerableFrom;
+        private float dodgeInvulnerableUntil;
+        private float attackActiveAt;
+        private AttackDefinition currentAttack;
+        private bool isAttacking;
         private Coroutine actionRoutine;
         private Coroutine knockbackRoutine;
 
@@ -40,16 +51,23 @@ namespace Turtle.Combat
         public bool IsAlive => currentHealth > 0f;
         public bool IsTargetDummy => targetDummy;
         public bool IsBusy => Time.time < actionEndsAt;
+        public bool IsIntangible => Time.time >= dodgeInvulnerableFrom && Time.time < dodgeInvulnerableUntil;
+        public bool IsAttacking => isAttacking;
+        public float AttackActiveAt => attackActiveAt;
+        public AttackDefinition CurrentAttack => currentAttack;
         public WeaponMoveSetDefinition MoveSet => moveSet;
 
         public event Action<Combatant, Combatant, float> Damaged;
         public event Action<Combatant, Combatant> Defeated;
+        public event Action<Combatant, Combatant, float> AttackConnected;
 
         private void Awake()
         {
             characterController ??= GetComponent<CharacterController>();
             animationView ??= GetComponentInChildren<CombatAnimationView>(true);
             commandDriver ??= GetComponent<CombatAgentDriver>();
+            weaponHitbox ??= GetComponentInChildren<CombatWeaponHitbox>(true);
+            hurtbox ??= GetComponentInChildren<CombatHurtbox>(true);
             currentHealth = maxHealth;
         }
 
@@ -64,6 +82,7 @@ namespace Turtle.Combat
 
         private void OnDisable()
         {
+            weaponHitbox?.EndAttack();
             CombatantRegistry.Unregister(this);
         }
 
@@ -75,10 +94,10 @@ namespace Turtle.Combat
                 return;
             }
 
-            ApplyMovement(command, deltaTime);
+            var movementDirection = ApplyMovement(command, deltaTime);
             if (!IsBusy && command.Action != CombatAction.None)
             {
-                BeginAction(command.Action, command.Facing);
+                BeginAction(command.Action, command.Facing, movementDirection);
             }
         }
 
@@ -91,26 +110,34 @@ namespace Turtle.Combat
                     (other.team != CombatTeam.Neutral && other.team != team));
         }
 
-        public void ReceiveDamage(float amount, Combatant source, Vector3 direction, float knockback)
+        public bool TryReceiveHit(in CombatHit hit)
         {
-            if (!IsAlive || amount <= 0f || (source != null && !source.CanTarget(this)))
+            var source = hit.Attacker;
+            var attack = hit.Attack;
+            if (!IsAlive ||
+                IsIntangible ||
+                attack.damage <= 0f ||
+                source == null ||
+                !source.CanTarget(this))
             {
-                return;
+                return false;
             }
 
-            currentHealth = Mathf.Max(0f, currentHealth - amount);
+            InterruptAction();
+            currentHealth = Mathf.Max(0f, currentHealth - attack.damage);
+            actionEndsAt = Time.time + hitReactionDuration;
             animationView?.PlayHit();
             CombatFeedbackPool.SpawnBlood(
                 transform.position + Vector3.up * 1.15f,
-                direction);
+                hit.Direction);
             source?.animationView?.EmitWeaponBlood();
-            Damaged?.Invoke(this, source, amount);
+            Damaged?.Invoke(this, source, attack.damage);
 
             if (knockbackRoutine != null)
             {
                 StopCoroutine(knockbackRoutine);
             }
-            knockbackRoutine = StartCoroutine(ApplyKnockback(direction, knockback));
+            knockbackRoutine = StartCoroutine(ApplyKnockback(hit.Direction, attack.knockback));
 
             if (currentHealth <= 0f)
             {
@@ -118,6 +145,12 @@ namespace Turtle.Combat
                 animationView?.PlayDeath();
                 Defeated?.Invoke(this, source);
             }
+            return true;
+        }
+
+        public void NotifyAttackConnected(Combatant target, float damage)
+        {
+            AttackConnected?.Invoke(this, target, damage);
         }
 
         public void ResetCombatant()
@@ -126,18 +159,23 @@ namespace Turtle.Combat
             {
                 StopCoroutine(actionRoutine);
             }
+            weaponHitbox?.EndAttack();
             if (knockbackRoutine != null)
             {
                 StopCoroutine(knockbackRoutine);
             }
             currentHealth = maxHealth;
             actionEndsAt = 0f;
+            dodgeInvulnerableFrom = 0f;
+            dodgeInvulnerableUntil = 0f;
+            attackActiveAt = 0f;
+            isAttacking = false;
             verticalVelocity = 0f;
             characterController.enabled = true;
             animationView?.ResetView();
         }
 
-        private void ApplyMovement(CombatCommand command, float deltaTime)
+        private Vector3 ApplyMovement(CombatCommand command, float deltaTime)
         {
             var facing = command.Facing.sqrMagnitude > 0.001f ? command.Facing : transform.forward;
             var right = Vector3.Cross(Vector3.up, facing).normalized;
@@ -165,9 +203,10 @@ namespace Turtle.Combat
             var speed = IsBusy ? 0f : moveSpeed;
             characterController.Move((movement * speed + Vector3.up * verticalVelocity) * deltaTime);
             animationView?.SetLocomotion(movement.magnitude * speed, IsBusy);
+            return movement;
         }
 
-        private void BeginAction(CombatAction action, Vector3 facing)
+        private void BeginAction(CombatAction action, Vector3 facing, Vector3 movementDirection)
         {
             if (actionRoutine != null)
             {
@@ -183,89 +222,96 @@ namespace Turtle.Combat
             {
                 CombatAction.LightAttack => StartCoroutine(Attack(moveSet.LightAttack)),
                 CombatAction.HeavyAttack => StartCoroutine(Attack(moveSet.HeavyAttack)),
-                CombatAction.Dodge => StartCoroutine(Dodge()),
+                CombatAction.Dodge => StartCoroutine(Dodge(
+                    movementDirection.sqrMagnitude > 0.001f
+                        ? movementDirection.normalized
+                        : transform.forward)),
                 _ => null
             };
         }
 
         private IEnumerator Attack(AttackDefinition attack)
         {
-            actionEndsAt = Time.time + attack.windup + attack.recovery;
+            currentAttack = attack;
+            isAttacking = true;
+            var attackStartedAt = Time.time;
+            var animationDuration = attack.animationDuration > 0.05f
+                ? attack.animationDuration
+                : Mathf.Max(0.05f, attack.windup + attack.activeDuration + attack.recovery);
+            var firstHitboxTime = attack.FirstHitboxStartNormalized;
+            var lastHitboxTime = Mathf.Max(
+                firstHitboxTime,
+                attack.LastHitboxEndNormalized);
+            attackActiveAt = attackStartedAt + firstHitboxTime * animationDuration;
+            actionEndsAt = attackStartedAt + animationDuration;
             animationView?.PlayAction(attack.animationState);
-            var start = transform.position;
-            yield return new WaitForSeconds(attack.windup);
-
+            weaponHitbox?.BeginAttack(attack);
             var forward = transform.forward;
-            var target = FindBestTarget(forward, attack.range, attack.arc);
-            if (target != null)
+            var activeSpanSeconds = Mathf.Max(
+                0.01f,
+                (lastHitboxTime - firstHitboxTime) * animationDuration);
+            while (Time.time < actionEndsAt)
             {
-                var direction = Vector3.ProjectOnPlane(
-                    target.transform.position - transform.position,
-                    Vector3.up).normalized;
-                target.ReceiveDamage(attack.damage, this, direction, attack.knockback);
-            }
-
-            var lungeElapsed = 0f;
-            const float lungeDuration = 0.12f;
-            while (lungeElapsed < lungeDuration && attack.lunge > 0f)
-            {
-                lungeElapsed += Time.deltaTime;
-                var remaining = 1f - Mathf.Clamp01(lungeElapsed / lungeDuration);
-                characterController.Move(forward * (attack.lunge * remaining * 2f / lungeDuration * Time.deltaTime));
+                var normalizedProgress = Mathf.Clamp01(
+                    (Time.time - attackStartedAt) / animationDuration);
+                weaponHitbox?.SetNormalizedProgress(normalizedProgress);
+                if (attack.lunge > 0f &&
+                    normalizedProgress >= firstHitboxTime &&
+                    normalizedProgress <= lastHitboxTime)
+                {
+                    characterController.Move(
+                        forward * (attack.lunge / activeSpanSeconds * Time.deltaTime));
+                }
                 yield return null;
             }
-
-            var remainingRecovery = Mathf.Max(0f, actionEndsAt - Time.time);
-            if (remainingRecovery > 0f)
-            {
-                yield return new WaitForSeconds(remainingRecovery);
-            }
+            weaponHitbox?.EndAttack();
+            isAttacking = false;
             actionRoutine = null;
         }
 
-        private IEnumerator Dodge()
+        private IEnumerator Dodge(Vector3 direction)
         {
-            actionEndsAt = Time.time + dodgeDuration;
+            direction = Vector3.ProjectOnPlane(direction, Vector3.up).normalized;
+            if (direction.sqrMagnitude < 0.001f)
+            {
+                direction = transform.forward;
+            }
+            transform.rotation = Quaternion.LookRotation(direction);
+            actionEndsAt = Time.time + Mathf.Max(dodgeActionDuration, dodgeTravelDuration);
+            dodgeInvulnerableFrom = Time.time + dodgeInvulnerabilityStart;
+            dodgeInvulnerableUntil = dodgeInvulnerableFrom + dodgeInvulnerabilityDuration;
             animationView?.PlayAction("Dodge");
             var elapsed = 0f;
-            while (elapsed < dodgeDuration)
+            while (elapsed < dodgeTravelDuration)
             {
                 elapsed += Time.deltaTime;
-                characterController.Move(transform.forward * (dodgeSpeed * Time.deltaTime));
+                var normalizedTime = Mathf.Clamp01(elapsed / dodgeTravelDuration);
+                var speedMultiplier = 1f - normalizedTime * 0.45f;
+                characterController.Move(direction * (dodgeSpeed * speedMultiplier * Time.deltaTime));
                 yield return null;
             }
+
+            var remainingAction = Mathf.Max(0f, actionEndsAt - Time.time);
+            if (remainingAction > 0f)
+            {
+                yield return new WaitForSeconds(remainingAction);
+            }
+            dodgeInvulnerableFrom = 0f;
+            dodgeInvulnerableUntil = 0f;
             actionRoutine = null;
         }
 
-        private Combatant FindBestTarget(Vector3 direction, float range, float arc)
+        private void InterruptAction()
         {
-            Combatant best = null;
-            var bestScore = float.PositiveInfinity;
-            var origin = transform.position;
-            var candidates = CombatantRegistry.All;
-            for (var index = 0; index < candidates.Count; index++)
+            if (actionRoutine != null)
             {
-                var candidate = candidates[index];
-                if (!CanTarget(candidate))
-                {
-                    continue;
-                }
-
-                var offset = Vector3.ProjectOnPlane(candidate.transform.position - origin, Vector3.up);
-                var distance = offset.magnitude;
-                if (distance > range || Vector3.Angle(direction, offset) > arc * 0.5f)
-                {
-                    continue;
-                }
-
-                var score = distance + Vector3.Angle(direction, offset) * 0.04f;
-                if (score < bestScore)
-                {
-                    best = candidate;
-                    bestScore = score;
-                }
+                StopCoroutine(actionRoutine);
+                actionRoutine = null;
             }
-            return best;
+            weaponHitbox?.EndAttack();
+            isAttacking = false;
+            dodgeInvulnerableFrom = 0f;
+            dodgeInvulnerableUntil = 0f;
         }
 
         private IEnumerator ApplyKnockback(Vector3 direction, float distance)
@@ -292,7 +338,9 @@ namespace Turtle.Combat
             float speed,
             WeaponMoveSetDefinition assignedMoveSet,
             CombatAnimationView view,
-            CombatAgentDriver driver)
+            CombatAgentDriver driver,
+            CombatWeaponHitbox assignedWeaponHitbox,
+            CombatHurtbox assignedHurtbox)
         {
             displayName = name;
             team = assignedTeam;
@@ -303,6 +351,16 @@ namespace Turtle.Combat
             characterController = GetComponent<CharacterController>();
             animationView = view;
             commandDriver = driver;
+            weaponHitbox = assignedWeaponHitbox;
+            hurtbox = assignedHurtbox;
+        }
+
+        public void ConfigureCombatVolumesEditor(
+            CombatWeaponHitbox assignedWeaponHitbox,
+            CombatHurtbox assignedHurtbox)
+        {
+            weaponHitbox = assignedWeaponHitbox;
+            hurtbox = assignedHurtbox;
         }
 #endif
     }

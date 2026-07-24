@@ -106,6 +106,64 @@ namespace Turtle.Combat.Editor
             }
         }
 
+        [MenuItem("Turtle/Combat/Upgrade Combat Volumes In Weapons Testing")]
+        public static void UpgradeCombatVolumes()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogError("Exit Play Mode before upgrading Weapons Testing combat volumes.");
+                return;
+            }
+
+            var scene = SceneManager.GetSceneByPath(ScenePath);
+            if (!scene.IsValid() || !scene.isLoaded)
+            {
+                scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            }
+
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                foreach (var combatant in root.GetComponentsInChildren<Combatant>(true))
+                {
+                    var hurtbox = combatant.GetComponentInChildren<CombatHurtbox>(true);
+                    if (hurtbox == null)
+                    {
+                        hurtbox = CreateHurtbox(
+                            combatant.transform,
+                            combatant,
+                            combatant.IsTargetDummy
+                                ? new Vector3(0f, 1.15f, 0f)
+                                : new Vector3(0f, 0.95f, 0f),
+                            combatant.IsTargetDummy ? 2.3f : 1.8f,
+                            combatant.IsTargetDummy ? 0.5f : 0.4f);
+                    }
+
+                    CombatWeaponHitbox weaponHitbox = null;
+                    if (!combatant.IsTargetDummy)
+                    {
+                        var sword = FindDescendant(combatant.transform, "Equipped 2H Sword");
+                        if (sword != null)
+                        {
+                            weaponHitbox = sword.GetComponent<CombatWeaponHitbox>();
+                            if (weaponHitbox == null)
+                            {
+                                weaponHitbox = sword.gameObject.AddComponent<CombatWeaponHitbox>();
+                            }
+                            weaponHitbox.ConfigureEditor(combatant);
+                        }
+                    }
+
+                    combatant.ConfigureCombatVolumesEditor(weaponHitbox, hurtbox);
+                    EditorUtility.SetDirty(combatant);
+                }
+            }
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log(
+                "Weapons Testing combat volumes upgraded and saved without rebuilding the arena.");
+        }
+
         private static void Build(bool rebuild)
         {
             EnsureFolders();
@@ -310,6 +368,14 @@ namespace Turtle.Combat.Editor
             var animationView = root.AddComponent<CombatAnimationView>();
             animationView.ConfigureEditor(animator, sword.transform);
             var combatant = root.AddComponent<Combatant>();
+            var hurtbox = CreateHurtbox(
+                root.transform,
+                combatant,
+                new Vector3(0f, 0.95f, 0f),
+                1.8f,
+                0.4f);
+            var weaponHitbox = sword.AddComponent<CombatWeaponHitbox>();
+            weaponHitbox.ConfigureEditor(combatant);
             MonoBehaviour source;
             PlayerCombatCommandSource playerSource = null;
             if (playerControlled)
@@ -331,7 +397,9 @@ namespace Turtle.Combat.Editor
                 playerControlled ? 7f : 5.7f,
                 moveSet,
                 animationView,
-                driver);
+                driver,
+                weaponHitbox,
+                hurtbox);
             return new FighterBuild(combatant, driver, playerSource);
         }
 
@@ -364,8 +432,56 @@ namespace Turtle.Combat.Editor
                 .transform.rotation = Quaternion.Euler(90f, 0f, 0f);
 
             var combatant = root.AddComponent<Combatant>();
-            combatant.ConfigureEditor(dummyName, CombatTeam.Neutral, true, 180f, 0f, moveSet, null, null);
+            var hurtbox = CreateHurtbox(
+                root.transform,
+                combatant,
+                new Vector3(0f, 1.15f, 0f),
+                2.3f,
+                0.5f);
+            combatant.ConfigureEditor(
+                dummyName,
+                CombatTeam.Neutral,
+                true,
+                180f,
+                0f,
+                moveSet,
+                null,
+                null,
+                null,
+                hurtbox);
             return combatant;
+        }
+
+        private static CombatHurtbox CreateHurtbox(
+            Transform parent,
+            Combatant owner,
+            Vector3 center,
+            float height,
+            float radius)
+        {
+            var hurtboxObject = new GameObject("Body Hurtbox");
+            hurtboxObject.transform.SetParent(parent, false);
+            var capsule = hurtboxObject.AddComponent<CapsuleCollider>();
+            capsule.center = center;
+            capsule.height = height;
+            capsule.radius = radius;
+            capsule.direction = 1;
+            capsule.isTrigger = true;
+            var hurtbox = hurtboxObject.AddComponent<CombatHurtbox>();
+            hurtbox.ConfigureEditor(owner, capsule);
+            return hurtbox;
+        }
+
+        private static Transform FindDescendant(Transform root, string descendantName)
+        {
+            foreach (var child in root.GetComponentsInChildren<Transform>(true))
+            {
+                if (child.name == descendantName)
+                {
+                    return child;
+                }
+            }
+            return null;
         }
 
         private static void CreateArenaArchitecture(Transform parent, ArenaMaterials materials)
@@ -497,22 +613,28 @@ namespace Turtle.Combat.Editor
                     damage = 24f,
                     range = 2.45f,
                     arc = 82f,
-                    windup = 0.2f,
-                    recovery = 0.43f,
+                    windup = 0.336f,
+                    activeDuration = 0.444f,
+                    recovery = 0.42f,
                     knockback = 1.6f,
                     lunge = 1.1f,
-                    animationState = "Attack Light"
+                    animationDuration = 1.2f,
+                    animationState = "Attack Light",
+                    hitboxWindows = CreateLightAttackHitboxTimeline()
                 },
                 new AttackDefinition
                 {
                     damage = 42f,
                     range = 2.75f,
                     arc = 64f,
-                    windup = 0.34f,
-                    recovery = 0.78f,
+                    windup = 0.312f,
+                    activeDuration = 0.552f,
+                    recovery = 0.336f,
                     knockback = 2.7f,
                     lunge = 1.5f,
-                    animationState = "Attack Heavy"
+                    animationDuration = 1.2f,
+                    animationState = "Attack Heavy",
+                    hitboxWindows = CreateHeavyAttackHitboxTimeline()
                 });
             var serializedMoveSet = new SerializedObject(moveSet);
             var scriptProperty = serializedMoveSet.FindProperty("m_Script");
@@ -524,6 +646,42 @@ namespace Turtle.Combat.Editor
             EditorUtility.SetDirty(moveSet);
             AssetDatabase.SaveAssetIfDirty(moveSet);
             return moveSet;
+        }
+
+        private static AttackHitboxWindow[] CreateLightAttackHitboxTimeline()
+        {
+            return new[]
+            {
+                CreateHitboxWindow(0.28f, 0.4f, 1.05f, new Vector3(0.5f, 0.5f, 1.65f)),
+                CreateHitboxWindow(0.38f, 0.53f, 1.2f, new Vector3(0.58f, 0.58f, 1.9f)),
+                CreateHitboxWindow(0.5f, 0.65f, 1.05f, new Vector3(0.5f, 0.5f, 1.7f))
+            };
+        }
+
+        private static AttackHitboxWindow[] CreateHeavyAttackHitboxTimeline()
+        {
+            return new[]
+            {
+                CreateHitboxWindow(0.26f, 0.42f, 1.1f, new Vector3(0.62f, 0.62f, 1.9f)),
+                CreateHitboxWindow(0.4f, 0.58f, 1.2f, new Vector3(0.72f, 0.72f, 2.1f)),
+                CreateHitboxWindow(0.56f, 0.72f, 1.1f, new Vector3(0.65f, 0.65f, 1.9f))
+            };
+        }
+
+        private static AttackHitboxWindow CreateHitboxWindow(
+            float start,
+            float end,
+            float bladeCenter,
+            Vector3 size)
+        {
+            return new AttackHitboxWindow
+            {
+                startNormalized = start,
+                endNormalized = end,
+                localCenter = new Vector3(-0.177f, -0.077f, bladeCenter),
+                localSize = size,
+                localEulerAngles = Vector3.zero
+            };
         }
 
         private static RuntimeAnimatorController EnsureAnimatorController(bool rebuild)

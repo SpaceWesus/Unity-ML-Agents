@@ -17,17 +17,53 @@ MonoBehaviour:
     damage: 24
     range: 2.45
     arc: 82
-    windup: 0.2
-    recovery: 0.43
+    windup: 0.336
+    activeDuration: 0.444
+    recovery: 0.42
     knockback: 1.6
     lunge: 1.1
+    animationDuration: 1.2
     animationState: Attack Light
+    hitboxWindows:
+    - startNormalized: 0.28
+      endNormalized: 0.4
+      localCenter: {x: -0.177, y: -0.077, z: 1.05}
+      localSize: {x: 0.5, y: 0.5, z: 1.65}
+      localEulerAngles: {x: 0, y: 0, z: 0}
+    - startNormalized: 0.38
+      endNormalized: 0.53
+      localCenter: {x: -0.177, y: -0.077, z: 1.2}
+      localSize: {x: 0.58, y: 0.58, z: 1.9}
+      localEulerAngles: {x: 0, y: 0, z: 0}
+    - startNormalized: 0.5
+      endNormalized: 0.65
+      localCenter: {x: -0.177, y: -0.077, z: 1.05}
+      localSize: {x: 0.5, y: 0.5, z: 1.7}
+      localEulerAngles: {x: 0, y: 0, z: 0}
   heavyAttack:
     damage: 42
     range: 2.75
     arc: 64
-    windup: 0.34
-    recovery: 0.78
+    windup: 0.312
+    activeDuration: 0.552
+    recovery: 0.336
     knockback: 2.7
     lunge: 1.5
+    animationDuration: 1.2
     animationState: Attack Heavy
+    hitboxWindows:
+    - startNormalized: 0.26
+      endNormalized: 0.42
+      localCenter: {x: -0.177, y: -0.077, z: 1.1}
+      localSize: {x: 0.62, y: 0.62, z: 1.9}
+      localEulerAngles: {x: 0, y: 0, z: 0}
+    - startNormalized: 0.4
+      endNormalized: 0.58
+      localCenter: {x: -0.177, y: -0.077, z: 1.2}
+      localSize: {x: 0.72, y: 0.72, z: 2.1}
+      localEulerAngles: {x: 0, y: 0, z: 0}
+    - startNormalized: 0.56
+      endNormalized: 0.72
+      localCenter: {x: -0.177, y: -0.077, z: 1.1}
+      localSize: {x: 0.65, y: 0.65, z: 1.9}
+      localEulerAngles: {x: 0, y: 0, z: 0}

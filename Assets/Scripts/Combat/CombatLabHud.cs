@@ -9,6 +9,17 @@ namespace Turtle.Combat
         private GUIStyle panelStyle;
         private GUIStyle titleStyle;
         private GUIStyle bodyStyle;
+        private float hitMarkerEndsAt;
+
+        private void OnEnable()
+        {
+            SubscribeToPlayer();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeFromPlayer();
+        }
 
         private void OnGUI()
         {
@@ -33,7 +44,51 @@ namespace Turtle.Combat
             GUI.color = new Color(0.75f, 0.9f, 1f, 0.9f);
             GUI.DrawTexture(new Rect(center.x - 1f, center.y - 8f, 2f, 16f), Texture2D.whiteTexture);
             GUI.DrawTexture(new Rect(center.x - 8f, center.y - 1f, 16f, 2f), Texture2D.whiteTexture);
+
+            if (Time.time < hitMarkerEndsAt)
+            {
+                var fade = Mathf.Clamp01((hitMarkerEndsAt - Time.time) / 0.14f);
+                GUI.color = new Color(1f, 0.94f, 0.78f, fade);
+                const float offset = 11f;
+                const float length = 9f;
+                DrawRotatedLine(center + new Vector2(-offset, -offset), 45f, length, 3f);
+                DrawRotatedLine(center + new Vector2(offset, -offset), -45f, length, 3f);
+                DrawRotatedLine(center + new Vector2(-offset, offset), -45f, length, 3f);
+                DrawRotatedLine(center + new Vector2(offset, offset), 45f, length, 3f);
+            }
             GUI.color = Color.white;
+        }
+
+        private static void DrawRotatedLine(Vector2 center, float angle, float length, float thickness)
+        {
+            var previousMatrix = GUI.matrix;
+            GUIUtility.RotateAroundPivot(angle, center);
+            GUI.DrawTexture(
+                new Rect(center.x - length * 0.5f, center.y - thickness * 0.5f, length, thickness),
+                Texture2D.whiteTexture);
+            GUI.matrix = previousMatrix;
+        }
+
+        private void HandleAttackConnected(Combatant attacker, Combatant target, float damage)
+        {
+            hitMarkerEndsAt = Time.time + 0.14f;
+        }
+
+        private void SubscribeToPlayer()
+        {
+            if (player != null)
+            {
+                player.AttackConnected -= HandleAttackConnected;
+                player.AttackConnected += HandleAttackConnected;
+            }
+        }
+
+        private void UnsubscribeFromPlayer()
+        {
+            if (player != null)
+            {
+                player.AttackConnected -= HandleAttackConnected;
+            }
         }
 
         private void EnsureStyles()
@@ -63,7 +118,12 @@ namespace Turtle.Combat
 #if UNITY_EDITOR
         public void ConfigureEditor(Combatant playerCombatant)
         {
+            UnsubscribeFromPlayer();
             player = playerCombatant;
+            if (isActiveAndEnabled)
+            {
+                SubscribeToPlayer();
+            }
         }
 #endif
     }

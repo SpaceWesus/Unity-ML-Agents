@@ -37,8 +37,8 @@ namespace Turtle.Combat
 
         public void Hit()
         {
-            // The source pack's hit marker is presentation timing only.
-            // Combatant owns authoritative damage so AI and players stay identical.
+            // Source-pack timing marker. Offensive gameplay volumes are authored
+            // on the move's normalized hitbox timeline, not animation callbacks.
         }
     }
 }

@@ -18,6 +18,29 @@ produces a `CombatCommand`:
 Do not add player-only combat powers. A new capability belongs on the shared
 combatant/ability surface and may be invoked by any command source.
 
+## Combat contact contract
+
+Damage is contact-authoritative and uses a Smash-style separation between
+damageable body volumes and move-specific offensive volumes:
+
+- `CombatWeaponHitbox` evaluates the move's normalized hitbox timeline. Each
+  entry has a start/end percentage, local center, box size, and orientation.
+  A box exists only inside its authored animation window.
+- Active boxes use oriented overlaps plus swept box casts. Rotational movement
+  is sampled between rendered poses because Unity box casts sweep translation,
+  not rotation.
+- `CombatHurtbox` marks the body volume that may receive a hit.
+- Startup and recovery frames cannot deal damage. A dodge makes its owner
+  intangible only during its configured invulnerability window.
+- One attack activation can damage every contacted hurtbox owner once. A wide
+  swing may hit multiple enemies, while repeated overlap with the same enemy
+  does not deal duplicate damage. A miss, successful dodge, future block, or
+  interruption before contact deals no damage.
+- `AttackDefinition.range` and `arc` are AI planning data, not damage checks.
+
+The player hit marker listens to the same confirmed-contact event used by the
+combat system; it never appears for a proximity test or a whiff.
+
 ## Authoring workflow
 
 Use the Unity menu:
@@ -48,6 +71,8 @@ development laboratory, not a shipping startup scene.
 
 - Add a weapon by creating a `WeaponMoveSetDefinition` and an animation
   controller (or override controller) that exposes the named action states.
+  Author the move's `hitboxWindows` against normalized animation time; do not
+  enlarge a persistent weapon collider to compensate for missing phases.
 - Add a skill by extending `CombatAction` and implementing the shared execution
   path on `Combatant`; expose it to both human and AI command sources.
 - Add tactical AI by replacing or extending `AiCombatCommandSource`. Keep its
@@ -61,6 +86,9 @@ development laboratory, not a shipping startup scene.
 
 The first move set is a two-handed training greatsword with light attack, heavy
 attack, dodge, hit reaction, knockdown, pooled blood impact particles, weapon
-blood drips, knockback, and automatic laboratory respawn. The architecture is
-ready for additional movesets and skills; those content sets are intentionally
-not fabricated before their intended combat designs are chosen.
+blood drips, knockback, confirmed-hit marker, directional dodge, threat-aware AI
+dodge, and automatic laboratory respawn. Blocking and parrying are future hit
+resolution outcomes; they should be added at the hurtbox/defense resolver rather
+than bypassing weapon contact. The architecture is ready for additional
+movesets and skills; those content sets are intentionally not fabricated before
+their intended combat designs are chosen.

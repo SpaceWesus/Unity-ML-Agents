@@ -18,10 +18,12 @@ namespace Turtle.Combat
         private void Awake()
         {
             animator ??= GetComponentInChildren<Animator>(true);
-            if (animator != null &&
-                animator.GetComponent<CombatAnimationEventRelay>() == null)
+            if (animator != null)
             {
-                animator.gameObject.AddComponent<CombatAnimationEventRelay>();
+                if (animator.GetComponent<CombatAnimationEventRelay>() == null)
+                {
+                    animator.gameObject.AddComponent<CombatAnimationEventRelay>();
+                }
             }
             if (weapon != null)
             {

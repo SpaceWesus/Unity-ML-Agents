@@ -9,10 +9,13 @@ namespace Turtle.Combat
         [SerializeField, Min(0.1f)] private float preferredRange = 2.05f;
         [SerializeField, Min(0f)] private float awarenessRange = 28f;
         [SerializeField, Range(0f, 1f)] private float heavyAttackChance = 0.22f;
-        [SerializeField, Range(0f, 1f)] private float dodgeChanceWhenThreatened = 0.08f;
+        [SerializeField, Range(0f, 1f)] private float dodgeChanceWhenThreatened = 0.72f;
+        [SerializeField, Min(0.05f)] private float dodgeReactionWindow = 0.42f;
+        [SerializeField, Min(0f)] private float dodgeCooldown = 1.15f;
 
         private Combatant target;
         private float nextDecisionAt;
+        private float nextDodgeAt;
         private CombatCommand cachedCommand;
 
         public CombatCommand SampleCommand(Combatant self)
@@ -23,6 +26,22 @@ namespace Turtle.Combat
             }
 
             nextDecisionAt = Time.time + decisionInterval + Random.Range(-0.02f, 0.02f);
+            if (!self.IsBusy &&
+                Time.time >= nextDodgeAt &&
+                TryFindIncomingAttack(self, out var threat, out var dodgeMovement) &&
+                Random.value <= dodgeChanceWhenThreatened)
+            {
+                var threatOffset = Vector3.ProjectOnPlane(
+                    threat.transform.position - transform.position,
+                    Vector3.up);
+                var threatFacing = threatOffset.sqrMagnitude > 0.001f
+                    ? threatOffset.normalized
+                    : transform.forward;
+                nextDodgeAt = Time.time + dodgeCooldown;
+                cachedCommand = new CombatCommand(dodgeMovement, threatFacing, CombatAction.Dodge);
+                return cachedCommand;
+            }
+
             if (target == null || !self.CanTarget(target) ||
                 Vector3.Distance(transform.position, target.transform.position) > awarenessRange)
             {
@@ -48,12 +67,9 @@ namespace Turtle.Combat
             var action = CombatAction.None;
             if (!self.IsBusy && distance <= preferredRange + 0.55f)
             {
-                var roll = Random.value;
-                action = roll < dodgeChanceWhenThreatened
-                    ? CombatAction.Dodge
-                    : roll < heavyAttackChance + dodgeChanceWhenThreatened
-                        ? CombatAction.HeavyAttack
-                        : CombatAction.LightAttack;
+                action = Random.value < heavyAttackChance
+                    ? CombatAction.HeavyAttack
+                    : CombatAction.LightAttack;
             }
 
             cachedCommand = new CombatCommand(movement, facing, action);
@@ -91,6 +107,56 @@ namespace Turtle.Combat
                 }
             }
             return nearestEnemy != null ? nearestEnemy : nearestDummy;
+        }
+
+        private bool TryFindIncomingAttack(
+            Combatant self,
+            out Combatant threat,
+            out Vector2 dodgeMovement)
+        {
+            threat = null;
+            dodgeMovement = Vector2.zero;
+            var bestTimeUntilActive = float.PositiveInfinity;
+            var candidates = CombatantRegistry.All;
+            for (var index = 0; index < candidates.Count; index++)
+            {
+                var candidate = candidates[index];
+                if (!candidate.IsAttacking || !candidate.CanTarget(self))
+                {
+                    continue;
+                }
+
+                var offset = Vector3.ProjectOnPlane(
+                    self.transform.position - candidate.transform.position,
+                    Vector3.up);
+                var attack = candidate.CurrentAttack;
+                if (offset.sqrMagnitude > Mathf.Pow(attack.range + 0.8f, 2f) ||
+                    Vector3.Angle(candidate.transform.forward, offset) > attack.arc * 0.5f + 12f)
+                {
+                    continue;
+                }
+
+                var timeUntilActive = candidate.AttackActiveAt - Time.time;
+                if (timeUntilActive > dodgeReactionWindow ||
+                    timeUntilActive < -attack.activeDuration ||
+                    timeUntilActive >= bestTimeUntilActive)
+                {
+                    continue;
+                }
+
+                bestTimeUntilActive = timeUntilActive;
+                threat = candidate;
+            }
+
+            if (threat == null)
+            {
+                return false;
+            }
+
+            // CombatCommand movement is relative to its facing. Side rolls preserve
+            // pressure while leaving the telegraphed weapon path.
+            dodgeMovement = Random.value < 0.5f ? Vector2.left : Vector2.right;
+            return true;
         }
     }
 }
