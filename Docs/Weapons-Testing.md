@@ -47,6 +47,10 @@ damageable body volumes and move-specific offensive volumes:
 The player hit marker listens to the same confirmed-contact event used by the
 combat system; it never appears for a proximity test or a whiff.
 
+The combat lab also includes the shared player/AI ability system documented in
+`Docs/Combat-Abilities.md`. Use number keys `1`, `2`, and `3` for cooldown
+abilities and `4` for the equipped ultimate.
+
 ## Authoring workflow
 
 Use the Unity menu:

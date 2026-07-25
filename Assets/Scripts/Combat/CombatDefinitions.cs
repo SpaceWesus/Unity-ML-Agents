@@ -15,7 +15,11 @@ namespace Turtle.Combat
         None,
         LightAttack,
         HeavyAttack,
-        Dodge
+        Dodge,
+        Ability1,
+        Ability2,
+        Ability3,
+        Ultimate
     }
 
     public enum AttackMovementMode

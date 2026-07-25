@@ -12,6 +12,7 @@
   <Project Path="Unity.AI.Assistant.Runtime.csproj" />
   <Project Path="Unity.PerformanceTesting.Editor.csproj" />
   <Project Path="Unity.AI.Toolkit.Utility.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Unity.AI.MCP.Editor.csproj" />
   <Project Path="Unity.AI.Assistant.UI.Editor.csproj" />
   <Project Path="Unity.Burst.csproj" />
@@ -22,7 +23,6 @@
   <Project Path="Unity.Timeline.Editor.csproj" />
   <Project Path="Unity.ML-Agents.csproj" />
   <Project Path="Unity.Entities.csproj" />
-  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Unity.InferenceEngine.csproj" />
   <Project Path="Unity.AI.Mesh.csproj" />
   <Project Path="UnityEngine.UI.csproj" />

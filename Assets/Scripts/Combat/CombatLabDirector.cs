@@ -22,7 +22,7 @@ namespace Turtle.Combat
             }
             foreach (var combatant in arenaCombatants)
             {
-                if (combatant != null)
+                if (combatant != null && !combatant.IsTargetDummy)
                 {
                     combatant.Defeated += OnDefeated;
                 }
@@ -37,7 +37,7 @@ namespace Turtle.Combat
             }
             foreach (var combatant in arenaCombatants)
             {
-                if (combatant != null)
+                if (combatant != null && !combatant.IsTargetDummy)
                 {
                     combatant.Defeated -= OnDefeated;
                 }
@@ -87,6 +87,10 @@ namespace Turtle.Combat
 
         private void OnDefeated(Combatant defeated, Combatant victor)
         {
+            if (defeated == null || defeated.IsTargetDummy)
+            {
+                return;
+            }
             StartCoroutine(RespawnAfterDelay(defeated, 3f));
         }
 

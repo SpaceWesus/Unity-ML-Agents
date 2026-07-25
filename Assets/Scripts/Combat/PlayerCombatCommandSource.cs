@@ -36,6 +36,22 @@ namespace Turtle.Combat
             {
                 action = CombatAction.Dodge;
             }
+            else if (keyboard != null && keyboard.digit1Key.wasPressedThisFrame)
+            {
+                action = CombatAction.Ability1;
+            }
+            else if (keyboard != null && keyboard.digit2Key.wasPressedThisFrame)
+            {
+                action = CombatAction.Ability2;
+            }
+            else if (keyboard != null && keyboard.digit3Key.wasPressedThisFrame)
+            {
+                action = CombatAction.Ability3;
+            }
+            else if (keyboard != null && keyboard.digit4Key.wasPressedThisFrame)
+            {
+                action = CombatAction.Ultimate;
+            }
 
             var facing = gameplayCamera != null
                 ? Vector3.ProjectOnPlane(gameplayCamera.transform.forward, Vector3.up).normalized

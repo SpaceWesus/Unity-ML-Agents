@@ -31,6 +31,7 @@ namespace Turtle.Combat
         [SerializeField] private CombatAgentDriver commandDriver;
         [SerializeField] private CombatWeaponHitbox weaponHitbox;
         [SerializeField] private CombatHurtbox hurtbox;
+        [SerializeField] private CombatAbilityController abilityController;
 
         private float currentHealth;
         private float verticalVelocity;
@@ -39,7 +40,9 @@ namespace Turtle.Combat
         private float dodgeInvulnerableUntil;
         private float attackActiveAt;
         private AttackDefinition currentAttack;
+        private CombatAbilityDefinition currentAbility;
         private bool isAttacking;
+        private bool isUsingAbility;
         private Coroutine actionRoutine;
         private Coroutine knockbackRoutine;
 
@@ -53,12 +56,18 @@ namespace Turtle.Combat
         public bool IsBusy => Time.time < actionEndsAt;
         public bool IsIntangible => Time.time >= dodgeInvulnerableFrom && Time.time < dodgeInvulnerableUntil;
         public bool IsAttacking => isAttacking;
+        public bool IsUsingAbility => isUsingAbility;
         public bool CanDodge => IsAlive &&
                                 !targetDummy &&
-                                (!IsBusy || (isAttacking && currentAttack.AllowsDodgeCancel));
+                                (!IsBusy ||
+                                 (isAttacking && currentAttack.AllowsDodgeCancel) ||
+                                 (isUsingAbility && currentAbility != null &&
+                                  currentAbility.AllowsDodgeCancel));
         public float AttackActiveAt => attackActiveAt;
         public AttackDefinition CurrentAttack => currentAttack;
+        public CombatAbilityDefinition CurrentAbility => currentAbility;
         public WeaponMoveSetDefinition MoveSet => moveSet;
+        public CombatAbilityController Abilities => abilityController;
 
         public event Action<Combatant, Combatant, float> Damaged;
         public event Action<Combatant, Combatant> Defeated;
@@ -71,6 +80,7 @@ namespace Turtle.Combat
             commandDriver ??= GetComponent<CombatAgentDriver>();
             weaponHitbox ??= GetComponentInChildren<CombatWeaponHitbox>(true);
             hurtbox ??= GetComponentInChildren<CombatHurtbox>(true);
+            abilityController ??= GetComponent<CombatAbilityController>();
             currentHealth = maxHealth;
         }
 
@@ -119,45 +129,38 @@ namespace Turtle.Combat
 
         public bool TryReceiveHit(in CombatHit hit)
         {
-            var source = hit.Attacker;
-            var attack = hit.Attack;
-            if (!IsAlive ||
-                IsIntangible ||
-                attack.damage <= 0f ||
-                source == null ||
-                !source.CanTarget(this))
-            {
-                return false;
-            }
+            return TryReceiveDamage(
+                hit.Attacker,
+                hit.Attack.damage,
+                hit.Attack.knockback,
+                hit.Direction,
+                true);
+        }
 
-            InterruptAction();
-            currentHealth = Mathf.Max(0f, currentHealth - attack.damage);
-            actionEndsAt = Time.time + hitReactionDuration;
-            animationView?.PlayHit();
-            CombatFeedbackPool.SpawnBlood(
-                transform.position + Vector3.up * 1.15f,
-                hit.Direction);
-            source?.animationView?.EmitWeaponBlood();
-            Damaged?.Invoke(this, source, attack.damage);
-
-            if (knockbackRoutine != null)
-            {
-                StopCoroutine(knockbackRoutine);
-            }
-            knockbackRoutine = StartCoroutine(ApplyKnockback(hit.Direction, attack.knockback));
-
-            if (currentHealth <= 0f)
-            {
-                actionEndsAt = float.PositiveInfinity;
-                animationView?.PlayDeath();
-                Defeated?.Invoke(this, source);
-            }
-            return true;
+        public bool TryReceiveAbilityDamage(
+            Combatant source,
+            float damage,
+            float knockback,
+            Vector3 direction)
+        {
+            return TryReceiveDamage(source, damage, knockback, direction, false);
         }
 
         public void NotifyAttackConnected(Combatant target, float damage)
         {
+            abilityController?.NotifyDamageDealt(damage);
             AttackConnected?.Invoke(this, target, damage);
+        }
+
+        public void TeleportBy(Vector3 direction, float distance)
+        {
+            direction = Vector3.ProjectOnPlane(direction, Vector3.up).normalized;
+            if (direction.sqrMagnitude < 0.001f || distance <= 0f)
+            {
+                return;
+            }
+            characterController.Move(direction * distance);
+            transform.rotation = Quaternion.LookRotation(direction);
         }
 
         public void ResetCombatant()
@@ -177,9 +180,12 @@ namespace Turtle.Combat
             dodgeInvulnerableUntil = 0f;
             attackActiveAt = 0f;
             currentAttack = default;
+            currentAbility = null;
             isAttacking = false;
+            isUsingAbility = false;
             verticalVelocity = 0f;
             characterController.enabled = true;
+            abilityController?.ResetAbilityState();
             animationView?.ResetView();
         }
 
@@ -189,9 +195,14 @@ namespace Turtle.Combat
             var right = Vector3.Cross(Vector3.up, facing).normalized;
             var movement = facing * command.Movement.y + right * command.Movement.x;
             movement = Vector3.ClampMagnitude(movement, 1f);
-            var movementLocked = IsBusy && (!isAttacking || !currentAttack.AllowsMovement);
+            var actionAllowsMovement =
+                (isAttacking && currentAttack.AllowsMovement) ||
+                (isUsingAbility && currentAbility != null && currentAbility.AllowsMovement);
+            var movementLocked = IsBusy && !actionAllowsMovement;
 
-            if (!movementLocked && isAttacking && facing.sqrMagnitude > 0.001f)
+            if (!movementLocked &&
+                (isAttacking || isUsingAbility) &&
+                facing.sqrMagnitude > 0.001f)
             {
                 transform.rotation = Quaternion.Slerp(
                     transform.rotation,
@@ -236,10 +247,26 @@ namespace Turtle.Combat
                 attackActiveAt = 0f;
                 currentAttack = default;
             }
+            isUsingAbility = false;
+            currentAbility = null;
 
             if (facing.sqrMagnitude > 0.001f)
             {
                 transform.rotation = Quaternion.LookRotation(facing);
+            }
+
+            var abilitySlot = GetAbilitySlot(action);
+            if (abilitySlot >= 0)
+            {
+                if (abilityController != null &&
+                    abilityController.TryPrepare(abilitySlot, out var ability))
+                {
+                    actionRoutine = StartCoroutine(UseAbility(
+                        abilitySlot,
+                        ability,
+                        facing));
+                }
+                return;
             }
 
             actionRoutine = action switch
@@ -252,6 +279,40 @@ namespace Turtle.Combat
                         : transform.forward)),
                 _ => null
             };
+        }
+
+        private IEnumerator UseAbility(
+            int slot,
+            CombatAbilityDefinition ability,
+            Vector3 direction)
+        {
+            currentAbility = ability;
+            isUsingAbility = true;
+            var startedAt = Time.time;
+            var commitAt = startedAt + ability.CastTime;
+            actionEndsAt = startedAt + ability.ActionDuration;
+
+            while (Time.time < commitAt)
+            {
+                yield return null;
+            }
+
+            if (!abilityController.TryCommit(slot, ability, direction))
+            {
+                actionEndsAt = 0f;
+                isUsingAbility = false;
+                currentAbility = null;
+                actionRoutine = null;
+                yield break;
+            }
+
+            while (Time.time < actionEndsAt)
+            {
+                yield return null;
+            }
+            isUsingAbility = false;
+            currentAbility = null;
+            actionRoutine = null;
         }
 
         private IEnumerator Attack(AttackDefinition attack)
@@ -338,8 +399,81 @@ namespace Turtle.Combat
             isAttacking = false;
             attackActiveAt = 0f;
             currentAttack = default;
+            currentAbility = null;
+            isUsingAbility = false;
             dodgeInvulnerableFrom = 0f;
             dodgeInvulnerableUntil = 0f;
+        }
+
+        private bool TryReceiveDamage(
+            Combatant source,
+            float damage,
+            float knockback,
+            Vector3 direction,
+            bool weaponImpact)
+        {
+            if (!IsAlive ||
+                IsIntangible ||
+                damage <= 0f ||
+                source == null ||
+                !source.CanTarget(this))
+            {
+                return false;
+            }
+
+            var healthDamage = abilityController != null
+                ? abilityController.AbsorbDamage(damage)
+                : damage;
+            if (healthDamage <= 0f)
+            {
+                return true;
+            }
+
+            InterruptAction();
+            currentHealth = Mathf.Max(0f, currentHealth - healthDamage);
+            actionEndsAt = Time.time + hitReactionDuration;
+            animationView?.PlayHit();
+            if (!targetDummy)
+            {
+                CombatFeedbackPool.SpawnBlood(
+                    transform.position + Vector3.up * 1.15f,
+                    direction);
+                if (weaponImpact)
+                {
+                    source.animationView?.EmitWeaponBlood();
+                }
+            }
+            abilityController?.NotifyDamageReceived(healthDamage);
+            Damaged?.Invoke(this, source, healthDamage);
+
+            if (!targetDummy)
+            {
+                if (knockbackRoutine != null)
+                {
+                    StopCoroutine(knockbackRoutine);
+                }
+                knockbackRoutine = StartCoroutine(ApplyKnockback(direction, knockback));
+            }
+
+            if (currentHealth <= 0f)
+            {
+                actionEndsAt = float.PositiveInfinity;
+                animationView?.PlayDeath();
+                Defeated?.Invoke(this, source);
+            }
+            return true;
+        }
+
+        private static int GetAbilitySlot(CombatAction action)
+        {
+            return action switch
+            {
+                CombatAction.Ability1 => 0,
+                CombatAction.Ability2 => 1,
+                CombatAction.Ability3 => 2,
+                CombatAction.Ultimate => CombatAbilityLoadoutDefinition.UltimateSlot,
+                _ => -1
+            };
         }
 
         private IEnumerator ApplyKnockback(Vector3 direction, float distance)
@@ -368,7 +502,8 @@ namespace Turtle.Combat
             CombatAnimationView view,
             CombatAgentDriver driver,
             CombatWeaponHitbox assignedWeaponHitbox,
-            CombatHurtbox assignedHurtbox)
+            CombatHurtbox assignedHurtbox,
+            CombatAbilityController assignedAbilityController = null)
         {
             displayName = name;
             team = assignedTeam;
@@ -381,6 +516,7 @@ namespace Turtle.Combat
             commandDriver = driver;
             weaponHitbox = assignedWeaponHitbox;
             hurtbox = assignedHurtbox;
+            abilityController = assignedAbilityController;
         }
 
         public void ConfigureCombatVolumesEditor(
@@ -389,6 +525,12 @@ namespace Turtle.Combat
         {
             weaponHitbox = assignedWeaponHitbox;
             hurtbox = assignedHurtbox;
+        }
+
+        public void ConfigureAbilityControllerEditor(
+            CombatAbilityController assignedAbilityController)
+        {
+            abilityController = assignedAbilityController;
         }
 #endif
     }

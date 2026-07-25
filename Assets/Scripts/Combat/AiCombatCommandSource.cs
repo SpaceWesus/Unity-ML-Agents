@@ -9,6 +9,8 @@ namespace Turtle.Combat
         [SerializeField, Min(0.1f)] private float preferredRange = 2.05f;
         [SerializeField, Min(0f)] private float awarenessRange = 28f;
         [SerializeField, Range(0f, 1f)] private float heavyAttackChance = 0.22f;
+        [SerializeField, Range(0f, 1f)] private float abilityUseChance = 0.48f;
+        [SerializeField, Range(0f, 1f)] private float ultimateUseChance = 0.72f;
         [SerializeField, Range(0f, 1f)] private float dodgeChanceWhenThreatened = 0.72f;
         [SerializeField, Min(0.05f)] private float dodgeReactionWindow = 0.42f;
         [SerializeField, Min(0f)] private float dodgeCooldown = 1.15f;
@@ -65,7 +67,12 @@ namespace Turtle.Combat
                     ? Vector2.down
                     : Vector2.zero;
             var action = CombatAction.None;
-            if (!self.IsBusy && distance <= preferredRange + 0.55f)
+            if (!self.IsBusy &&
+                TryChooseAbility(self, distance, out var abilityAction))
+            {
+                action = abilityAction;
+            }
+            else if (!self.IsBusy && distance <= preferredRange + 0.55f)
             {
                 action = Random.value < heavyAttackChance
                     ? CombatAction.HeavyAttack
@@ -107,6 +114,74 @@ namespace Turtle.Combat
                 }
             }
             return nearestEnemy != null ? nearestEnemy : nearestDummy;
+        }
+
+        private bool TryChooseAbility(
+            Combatant self,
+            float targetDistance,
+            out CombatAction action)
+        {
+            action = CombatAction.None;
+            var abilities = self.Abilities;
+            if (abilities == null || abilities.Loadout == null)
+            {
+                return false;
+            }
+
+            const int ultimateSlot = CombatAbilityLoadoutDefinition.UltimateSlot;
+            var ultimate = abilities.GetAbility(ultimateSlot);
+            if (ultimate != null &&
+                abilities.IsReady(ultimateSlot) &&
+                ultimate.IsInAiRange(targetDistance) &&
+                Random.value <= ultimateUseChance)
+            {
+                action = CombatAction.Ultimate;
+                return true;
+            }
+
+            if (Random.value > abilityUseChance)
+            {
+                return false;
+            }
+
+            var firstSlot = Random.Range(0, ultimateSlot);
+            for (var offset = 0; offset < ultimateSlot; offset++)
+            {
+                var slot = (firstSlot + offset) % ultimateSlot;
+                var ability = abilities.GetAbility(slot);
+                if (ability == null ||
+                    !abilities.IsReady(slot) ||
+                    !ability.IsInAiRange(targetDistance) ||
+                    !ShouldUseAbility(self, ability, targetDistance))
+                {
+                    continue;
+                }
+
+                action = slot switch
+                {
+                    0 => CombatAction.Ability1,
+                    1 => CombatAction.Ability2,
+                    _ => CombatAction.Ability3
+                };
+                return true;
+            }
+            return false;
+        }
+
+        private bool ShouldUseAbility(
+            Combatant self,
+            CombatAbilityDefinition ability,
+            float targetDistance)
+        {
+            return ability.AiIntent switch
+            {
+                AbilityAiIntent.Defensive => self.HealthRatio <= 0.72f &&
+                                             self.Abilities.BarrierHealth <= 0f,
+                AbilityAiIntent.Mobility => targetDistance > preferredRange + 1.5f,
+                AbilityAiIntent.Offensive => true,
+                AbilityAiIntent.Utility => Random.value <= 0.5f,
+                _ => false
+            };
         }
 
         private bool TryFindIncomingAttack(

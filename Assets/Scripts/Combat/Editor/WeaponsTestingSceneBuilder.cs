@@ -14,9 +14,11 @@ namespace Turtle.Combat.Editor
     {
         private const string ScenePath = "Assets/Scenes/Weapons Testing.unity";
         private const string DataFolder = "Assets/Data/Combat";
+        private const string AbilityFolder = DataFolder + "/Abilities";
         private const string MaterialFolder = "Assets/Materials/WeaponsTesting";
         private const string ControllerPath = DataFolder + "/Greatsword Combat.controller";
         private const string MoveSetPath = DataFolder + "/Training Greatsword.asset";
+        private const string MageLoadoutPath = AbilityFolder + "/Mage Prototype Loadout.asset";
         private const string PackRoot =
             "Assets/ExplosiveLLC/RPG Character Mecanim Animation Pack FREE";
         private const string CharacterPath = PackRoot + "/Models/Characters/RPG-Character.FBX";
@@ -28,16 +30,19 @@ namespace Turtle.Combat.Editor
             public FighterBuild(
                 Combatant combatant,
                 CombatAgentDriver driver,
-                PlayerCombatCommandSource playerSource)
+                PlayerCombatCommandSource playerSource,
+                CombatAbilityController abilities)
             {
                 Combatant = combatant;
                 Driver = driver;
                 PlayerSource = playerSource;
+                Abilities = abilities;
             }
 
             public Combatant Combatant { get; }
             public CombatAgentDriver Driver { get; }
             public PlayerCombatCommandSource PlayerSource { get; }
+            public CombatAbilityController Abilities { get; }
         }
 
         [MenuItem("Turtle/Combat/Open Weapons Testing")]
@@ -82,6 +87,10 @@ namespace Turtle.Combat.Editor
             if (AssetDatabase.LoadAssetAtPath<WeaponMoveSetDefinition>(MoveSetPath) == null)
             {
                 issues.Add($"Missing move set: {MoveSetPath}");
+            }
+            if (AssetDatabase.LoadAssetAtPath<CombatAbilityLoadoutDefinition>(MageLoadoutPath) == null)
+            {
+                issues.Add($"Missing ability loadout: {MageLoadoutPath}");
             }
             if (AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ControllerPath) == null)
             {
@@ -164,6 +173,89 @@ namespace Turtle.Combat.Editor
                 "Weapons Testing combat volumes upgraded and saved without rebuilding the arena.");
         }
 
+        [MenuItem("Turtle/Combat/Upgrade Ability System In Weapons Testing")]
+        public static void UpgradeAbilitySystem()
+        {
+            UpgradeGameplaySystems();
+        }
+
+        [MenuItem("Turtle/Combat/Upgrade Arena Feedback And Abilities")]
+        public static void UpgradeGameplaySystems()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogError("Exit Play Mode before upgrading Weapons Testing gameplay systems.");
+                return;
+            }
+
+            EnsureFolders();
+            var loadout = EnsureMageLoadout();
+            var scene = SceneManager.GetSceneByPath(ScenePath);
+            if (!scene.IsValid() || !scene.isLoaded)
+            {
+                scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            }
+
+            Combatant player = null;
+            Camera worldCamera = null;
+            GameObject systems = null;
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                worldCamera ??= root.GetComponentInChildren<Camera>(true);
+                if (root.name == "Combat Lab Systems")
+                {
+                    systems = root;
+                }
+
+                foreach (var combatant in root.GetComponentsInChildren<Combatant>(true))
+                {
+                    if (combatant.IsTargetDummy)
+                    {
+                        UpgradeTargetDummy(combatant);
+                        continue;
+                    }
+
+                    var abilities = combatant.GetComponent<CombatAbilityController>();
+                    if (abilities == null)
+                    {
+                        abilities = combatant.gameObject.AddComponent<CombatAbilityController>();
+                    }
+                    abilities.ConfigureEditor(combatant, loadout);
+                    combatant.ConfigureAbilityControllerEditor(abilities);
+                    EditorUtility.SetDirty(abilities);
+                    EditorUtility.SetDirty(combatant);
+
+                    if (combatant.GetComponent<PlayerCombatCommandSource>() != null)
+                    {
+                        player = combatant;
+                    }
+                }
+            }
+
+            systems ??= new GameObject("Combat Lab Systems");
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                var hud = root.GetComponentInChildren<CombatLabHud>(true);
+                if (hud != null && player != null)
+                {
+                    hud.ConfigureEditor(player);
+                    EditorUtility.SetDirty(hud);
+                }
+            }
+            var worldStatusHud = systems.GetComponent<CombatWorldStatusHud>();
+            if (worldStatusHud == null)
+            {
+                worldStatusHud = systems.AddComponent<CombatWorldStatusHud>();
+            }
+            worldStatusHud.ConfigureEditor(worldCamera, player);
+            EditorUtility.SetDirty(worldStatusHud);
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log(
+                "Weapons Testing status bars, target dummies, and ability loadouts upgraded and saved without rebuilding the arena.");
+        }
+
         private static void Build(bool rebuild)
         {
             EnsureFolders();
@@ -172,6 +264,7 @@ namespace Turtle.Combat.Editor
                 return;
             }
             var moveSet = EnsureMoveSet();
+            var abilityLoadout = EnsureMageLoadout();
             if (!rebuild && AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) != null)
             {
                 EnsureAnimatorController(false);
@@ -195,7 +288,7 @@ namespace Turtle.Combat.Editor
             }
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-            BuildArena(scene, moveSet, controller);
+            BuildArena(scene, moveSet, abilityLoadout, controller);
             EditorSceneManager.SaveScene(scene, ScenePath);
             AssetDatabase.Refresh();
             Debug.Log($"Authored production combat laboratory at {ScenePath}");
@@ -204,6 +297,7 @@ namespace Turtle.Combat.Editor
         private static void BuildArena(
             Scene scene,
             WeaponMoveSetDefinition moveSet,
+            CombatAbilityLoadoutDefinition abilityLoadout,
             RuntimeAnimatorController controller)
         {
             var materials = CreateMaterials();
@@ -219,6 +313,7 @@ namespace Turtle.Combat.Editor
                 CombatTeam.Azure,
                 true,
                 moveSet,
+                abilityLoadout,
                 controller,
                 materials.Azure);
 
@@ -259,6 +354,7 @@ namespace Turtle.Combat.Editor
                     team,
                     false,
                     moveSet,
+                    abilityLoadout,
                     controller,
                     teamMaterial);
                 arenaCombatants.Add(fighter.Combatant);
@@ -302,6 +398,8 @@ namespace Turtle.Combat.Editor
                 aiDrivers.ToArray());
             var hud = systems.AddComponent<CombatLabHud>();
             hud.ConfigureEditor(player.Combatant);
+            var worldStatusHud = systems.AddComponent<CombatWorldStatusHud>();
+            worldStatusHud.ConfigureEditor(camera, player.Combatant);
 
             CreateLighting();
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
@@ -323,6 +421,7 @@ namespace Turtle.Combat.Editor
             CombatTeam team,
             bool playerControlled,
             WeaponMoveSetDefinition moveSet,
+            CombatAbilityLoadoutDefinition abilityLoadout,
             RuntimeAnimatorController controller,
             Material teamMaterial)
         {
@@ -376,6 +475,8 @@ namespace Turtle.Combat.Editor
                 0.4f);
             var weaponHitbox = sword.AddComponent<CombatWeaponHitbox>();
             weaponHitbox.ConfigureEditor(combatant);
+            var abilities = root.AddComponent<CombatAbilityController>();
+            abilities.ConfigureEditor(combatant, abilityLoadout);
             MonoBehaviour source;
             PlayerCombatCommandSource playerSource = null;
             if (playerControlled)
@@ -399,8 +500,9 @@ namespace Turtle.Combat.Editor
                 animationView,
                 driver,
                 weaponHitbox,
-                hurtbox);
-            return new FighterBuild(combatant, driver, playerSource);
+                hurtbox,
+                abilities);
+            return new FighterBuild(combatant, driver, playerSource, abilities);
         }
 
         private static Combatant CreateDummy(
@@ -419,17 +521,19 @@ namespace Turtle.Combat.Editor
             controller.radius = 0.48f;
             controller.center = new Vector3(0f, 1.15f, 0f);
 
-            CreatePrimitive(PrimitiveType.Cylinder, "Base", root.transform,
+            var visualRoot = new GameObject("Target Dummy Visuals").transform;
+            visualRoot.SetParent(root.transform, false);
+            CreateLocalPrimitive(PrimitiveType.Cylinder, "Base", visualRoot,
                 new Vector3(0f, 0.12f, 0f), new Vector3(0.8f, 0.12f, 0.8f), target, true);
-            CreatePrimitive(PrimitiveType.Cylinder, "Post", root.transform,
+            CreateLocalPrimitive(PrimitiveType.Cylinder, "Post", visualRoot,
                 new Vector3(0f, 1.12f, 0f), new Vector3(0.16f, 1f, 0.16f), wood, true);
-            CreatePrimitive(PrimitiveType.Sphere, "Head", root.transform,
+            CreateLocalPrimitive(PrimitiveType.Sphere, "Head", visualRoot,
                 new Vector3(0f, 2.05f, 0f), Vector3.one * 0.32f, wood, true);
-            CreatePrimitive(PrimitiveType.Cube, "Crossbar", root.transform,
+            CreateLocalPrimitive(PrimitiveType.Cube, "Crossbar", visualRoot,
                 new Vector3(0f, 1.55f, 0f), new Vector3(1.4f, 0.14f, 0.14f), wood, true);
-            CreatePrimitive(PrimitiveType.Cylinder, "Target", root.transform,
+            CreateLocalPrimitive(PrimitiveType.Cylinder, "Target", visualRoot,
                 new Vector3(0f, 1.3f, -0.13f), new Vector3(0.5f, 0.08f, 0.5f), target, true)
-                .transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+                .transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
 
             var combatant = root.AddComponent<Combatant>();
             var hurtbox = CreateHurtbox(
@@ -449,7 +553,107 @@ namespace Turtle.Combat.Editor
                 null,
                 null,
                 hurtbox);
+            var dummyFeedback = root.AddComponent<CombatTargetDummy>();
+            dummyFeedback.ConfigureEditor(combatant, visualRoot);
             return combatant;
+        }
+
+        private static void UpgradeTargetDummy(Combatant combatant)
+        {
+            var root = combatant.transform;
+            var visualRoot = root.Find("Target Dummy Visuals");
+            if (visualRoot == null)
+            {
+                visualRoot = new GameObject("Target Dummy Visuals").transform;
+                visualRoot.SetParent(root, false);
+            }
+            visualRoot.localPosition = Vector3.zero;
+            visualRoot.localRotation = Quaternion.identity;
+            visualRoot.localScale = Vector3.one;
+
+            ConfigureDummyPart(
+                root,
+                visualRoot,
+                "Base",
+                new Vector3(0f, 0.12f, 0f),
+                Quaternion.identity,
+                new Vector3(0.8f, 0.12f, 0.8f));
+            ConfigureDummyPart(
+                root,
+                visualRoot,
+                "Post",
+                new Vector3(0f, 1.12f, 0f),
+                Quaternion.identity,
+                new Vector3(0.16f, 1f, 0.16f));
+            ConfigureDummyPart(
+                root,
+                visualRoot,
+                "Head",
+                new Vector3(0f, 2.05f, 0f),
+                Quaternion.identity,
+                Vector3.one * 0.32f);
+            ConfigureDummyPart(
+                root,
+                visualRoot,
+                "Crossbar",
+                new Vector3(0f, 1.55f, 0f),
+                Quaternion.identity,
+                new Vector3(1.4f, 0.14f, 0.14f));
+            ConfigureDummyPart(
+                root,
+                visualRoot,
+                "Target",
+                new Vector3(0f, 1.3f, -0.13f),
+                Quaternion.Euler(90f, 0f, 0f),
+                new Vector3(0.5f, 0.08f, 0.5f));
+
+            var feedback = root.GetComponent<CombatTargetDummy>();
+            if (feedback == null)
+            {
+                feedback = root.gameObject.AddComponent<CombatTargetDummy>();
+            }
+            feedback.ConfigureEditor(combatant, visualRoot);
+            EditorUtility.SetDirty(feedback);
+
+            foreach (var driver in root.GetComponents<CombatAgentDriver>())
+            {
+                driver.enabled = false;
+                EditorUtility.SetDirty(driver);
+            }
+            foreach (var source in root.GetComponents<AiCombatCommandSource>())
+            {
+                source.enabled = false;
+                EditorUtility.SetDirty(source);
+            }
+            foreach (var source in root.GetComponents<PlayerCombatCommandSource>())
+            {
+                source.enabled = false;
+                EditorUtility.SetDirty(source);
+            }
+        }
+
+        private static void ConfigureDummyPart(
+            Transform dummyRoot,
+            Transform visualRoot,
+            string partName,
+            Vector3 localPosition,
+            Quaternion localRotation,
+            Vector3 localScale)
+        {
+            var part = visualRoot.Find(partName) ?? dummyRoot.Find(partName);
+            if (part == null)
+            {
+                Debug.LogWarning(
+                    $"{dummyRoot.name} is missing visual part '{partName}'.",
+                    dummyRoot);
+                return;
+            }
+
+            part.SetParent(visualRoot, false);
+            part.localPosition = localPosition;
+            part.localRotation = localRotation;
+            part.localScale = localScale;
+            EditorUtility.SetDirty(part);
         }
 
         private static CombatHurtbox CreateHurtbox(
@@ -594,6 +798,28 @@ namespace Turtle.Combat.Editor
             return created;
         }
 
+        private static GameObject CreateLocalPrimitive(
+            PrimitiveType type,
+            string name,
+            Transform parent,
+            Vector3 localPosition,
+            Vector3 scale,
+            Material material,
+            bool removeCollider = false)
+        {
+            var created = CreatePrimitive(
+                type,
+                name,
+                parent,
+                parent.position,
+                scale,
+                material,
+                removeCollider);
+            created.transform.localPosition = localPosition;
+            created.transform.localRotation = Quaternion.identity;
+            return created;
+        }
+
         private static WeaponMoveSetDefinition EnsureMoveSet()
         {
             var moveSet = AssetDatabase.LoadAssetAtPath<WeaponMoveSetDefinition>(MoveSetPath);
@@ -650,6 +876,108 @@ namespace Turtle.Combat.Editor
             EditorUtility.SetDirty(moveSet);
             AssetDatabase.SaveAssetIfDirty(moveSet);
             return moveSet;
+        }
+
+        private static CombatAbilityLoadoutDefinition EnsureMageLoadout()
+        {
+            var arcaneBolt = EnsureAsset(
+                AbilityFolder + "/Arcane Bolt.asset",
+                (ProjectileAbilityDefinition ability) => ability.ConfigureEditor(
+                    "mage.arcane-bolt",
+                    "Arcane Bolt",
+                    "Launch a fast elemental projectile that damages the first target struck.",
+                    3.5f,
+                    18f,
+                    0.18f,
+                    0.22f,
+                    30f,
+                    22f,
+                    0.25f,
+                    2.2f,
+                    1.3f,
+                    new Color(0.15f, 0.72f, 1f)));
+            var spatialStep = EnsureAsset(
+                AbilityFolder + "/Spatial Step.asset",
+                (TeleportAbilityDefinition ability) => ability.ConfigureEditor(
+                    "mage.spatial-step",
+                    "Spatial Step",
+                    "Fold space to reposition instantly in the aimed direction.",
+                    6f,
+                    24f,
+                    0.08f,
+                    0.18f,
+                    7f,
+                    new Color(0.62f, 0.28f, 1f)));
+            var aegisBarrier = EnsureAsset(
+                AbilityFolder + "/Aegis Barrier.asset",
+                (BarrierAbilityDefinition ability) => ability.ConfigureEditor(
+                    "mage.aegis-barrier",
+                    "Aegis Barrier",
+                    "Create a temporary barrier that absorbs incoming damage.",
+                    9f,
+                    32f,
+                    0.25f,
+                    0.25f,
+                    70f,
+                    6f,
+                    new Color(0.12f, 0.85f, 1f)));
+            var arcaneNova = EnsureAsset(
+                AbilityFolder + "/Arcane Nova.asset",
+                (AreaAbilityDefinition ability) => ability.ConfigureEditor(
+                    "mage.arcane-nova",
+                    "Arcane Nova",
+                    "Ultimate: rupture the space ahead in a large damaging blast.",
+                    0.65f,
+                    0.45f,
+                    70f,
+                    5.2f,
+                    2f,
+                    3.5f,
+                    new Color(0.8f, 0.18f, 1f)));
+            var arcaneTempo = EnsureAsset(
+                AbilityFolder + "/Arcane Tempo.asset",
+                (CombatPassiveDefinition passive) => passive.ConfigureEditor(
+                    "mage.arcane-tempo",
+                    "Arcane Tempo",
+                    "A Mage-derived passive that slightly accelerates cooldowns, ultimate gain, and spell damage.",
+                    "Mage",
+                    0.9f,
+                    1.15f,
+                    1.05f));
+
+            return EnsureAsset(
+                MageLoadoutPath,
+                (CombatAbilityLoadoutDefinition loadout) => loadout.ConfigureEditor(
+                    "Mage Prototype",
+                    arcaneBolt,
+                    spatialStep,
+                    aegisBarrier,
+                    arcaneNova,
+                    new[] { arcaneTempo },
+                    100f,
+                    100f,
+                    14f,
+                    100f,
+                    100f,
+                    0.65f,
+                    0.35f));
+        }
+
+        private static T EnsureAsset<T>(string path, Action<T> configure)
+            where T : ScriptableObject
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+            if (asset != null)
+            {
+                return asset;
+            }
+
+            asset = ScriptableObject.CreateInstance<T>();
+            configure(asset);
+            AssetDatabase.CreateAsset(asset, path);
+            EditorUtility.SetDirty(asset);
+            AssetDatabase.SaveAssetIfDirty(asset);
+            return asset;
         }
 
         private static AttackHitboxWindow[] CreateLightAttackHitboxTimeline()
@@ -817,6 +1145,7 @@ namespace Turtle.Combat.Editor
         {
             EnsureFolder("Assets/Data");
             EnsureFolder(DataFolder);
+            EnsureFolder(AbilityFolder);
             EnsureFolder("Assets/Materials");
             EnsureFolder(MaterialFolder);
         }

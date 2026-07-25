@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0169a39fd099664fa162eef89fd8da5, type: 3}
+  m_Name: Mage Prototype Loadout
+  m_EditorClassIdentifier: Assembly-CSharp::Turtle.Combat.CombatAbilityLoadoutDefinition
+  displayName: Mage Prototype
+  ability1: {fileID: 11400000, guid: 91fd39d7a0ff55141acecaf43df79e88, type: 2}
+  ability2: {fileID: 11400000, guid: 23017e6358a6fb5418a665a4f22932c6, type: 2}
+  ability3: {fileID: 11400000, guid: 28b63e9788dd71b41b2978eead574f43, type: 2}
+  ultimate: {fileID: 11400000, guid: 2bc617b4ef7d59a4bae1e6d5cdd8fb37, type: 2}
+  passives:
+  - {fileID: 11400000, guid: a7ac6bd3915ab474f8c2c6cd5495aee7, type: 2}
+  maximumMana: 100
+  startingMana: 100
+  manaRegenerationPerSecond: 14
+  ultimateChargeRequired: 100
+  startingUltimateCharge: 100
+  ultimateChargePerDamageDealt: 0.65
+  ultimateChargePerDamageReceived: 0.35

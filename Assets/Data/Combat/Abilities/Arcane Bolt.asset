@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3610f81b8a5abd448a94a1d2e0e84c7, type: 3}
+  m_Name: Arcane Bolt
+  m_EditorClassIdentifier: Assembly-CSharp::Turtle.Combat.ProjectileAbilityDefinition
+  abilityId: mage.arcane-bolt
+  displayName: Arcane Bolt
+  description: Launch a fast elemental projectile that damages the first target struck.
+  discipline: Elemental Magic
+  cooldown: 3.5
+  manaCost: 18
+  castTime: 0.18
+  recovery: 0.22
+  movementMode: 0
+  dodgeCancelMode: 0
+  aiIntent: 0
+  aiMinimumRange: 2
+  aiMaximumRange: 38.72
+  themeColor: {r: 0.15, g: 0.72, b: 1, a: 1}
+  damage: 30
+  speed: 22
+  radius: 0.25
+  lifetime: 2.2
+  knockback: 1.3
