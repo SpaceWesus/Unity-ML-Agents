@@ -17,3 +17,8 @@ MonoBehaviour:
   moveSet: 2
   power: 16
   accent: {r: 0.68, g: 0.12, b: 1, a: 1}
+  tacticalRole: 3
+  grantedMoves:
+  - dagger_flurry
+  - rift_step
+  price: 128

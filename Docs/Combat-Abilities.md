@@ -11,8 +11,13 @@ cooldown, damage, barrier, and ultimate rules.
 
 - three regular cooldown ability slots;
 - one ultimate slot powered by ultimate charge;
-- any number of passive definitions;
+- a variable passive list in the current prototype;
 - ultimate gain rules for damage dealt and received.
+
+The production design limits the number of equipped passive slots while still
+allowing a hunter to learn more passives than can be equipped. The exact passive
+slot count is tunable. See `Docs/Game-Vision.md` for the authoritative loadout
+and progression contract.
 
 Loadouts do not enforce classes. Discipline names such as `Mage`, `Barrier
 Magic`, or `Spatial Magic` are descriptive authoring metadata. Any hunter can

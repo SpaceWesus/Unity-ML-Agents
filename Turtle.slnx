@@ -11,8 +11,8 @@
   <Project Path="Unity.RenderPipelines.Universal.Editor.csproj" />
   <Project Path="Unity.AI.Assistant.Runtime.csproj" />
   <Project Path="Unity.PerformanceTesting.Editor.csproj" />
-  <Project Path="Unity.AI.Toolkit.Utility.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Unity.AI.Toolkit.Utility.csproj" />
   <Project Path="Unity.AI.MCP.Editor.csproj" />
   <Project Path="Unity.AI.Assistant.UI.Editor.csproj" />
   <Project Path="Unity.Burst.csproj" />
@@ -40,10 +40,12 @@
   <Project Path="Unity.Burst.CodeGen.csproj" />
   <Project Path="Unity.InputSystem.csproj" />
   <Project Path="PPv2URPConverters.csproj" />
+  <Project Path="Unity.Postprocessing.Editor.csproj" />
   <Project Path="Unity.AI.Assistant.Editor.csproj" />
   <Project Path="Unity.VisualScripting.Flow.csproj" />
   <Project Path="ArcGISMapsSDK.Editor.csproj" />
   <Project Path="UnityEngine.TestRunner.csproj" />
+  <Project Path="Unity.2D.Tilemap.Editor.csproj" />
   <Project Path="Unity.Entities.UI.Editor.csproj" />
   <Project Path="Unity.Splines.Editor.csproj" />
   <Project Path="Unity.PerformanceTesting.csproj" />
@@ -77,6 +79,7 @@
   <Project Path="glTFast.Newtonsoft.csproj" />
   <Project Path="Unity.TextMeshPro.Editor.csproj" />
   <Project Path="Unity.RenderPipelines.Universal.2D.Editor.Overrides.csproj" />
+  <Project Path="Unity.Postprocessing.Runtime.csproj" />
   <Project Path="Unity.VisualScripting.State.csproj" />
   <Project Path="Unity.AI.Generators.Redux.csproj" />
   <Project Path="Unity.AI.Toolkit.Accounts.csproj" />
@@ -100,6 +103,7 @@
   <Project Path="Unity.Entities.CodeGen.csproj" />
   <Project Path="Unity.AI.Assistant.Annotations.Editor.csproj" />
   <Project Path="Unity.AppUI.Editor.csproj" />
+  <Project Path="Unity.ProGrids.csproj" />
   <Project Path="Unity.AI.Generators.UI.AIDropdownIntegrations.csproj" />
   <Project Path="Unity.Transforms.csproj" />
   <Project Path="Unity.Settings.Editor.csproj" />
@@ -116,6 +120,7 @@
   <Project Path="glTFast.Editor.csproj" />
   <Project Path="Unity.AppUI.Undo.csproj" />
   <Project Path="UnityEditor.UI.Analytics.csproj" />
+  <Project Path="Unity.ProGrids.Editor.csproj" />
   <Project Path="Unity.InternalAPIEngineBridge.002.csproj" />
   <Project Path="Unity.InferenceEngine.Editor.Visualizer.csproj" />
   <Project Path="Unity.Splines.csproj" />

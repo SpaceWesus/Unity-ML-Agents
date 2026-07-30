@@ -17,3 +17,8 @@ MonoBehaviour:
   moveSet: 0
   power: 13
   accent: {r: 0.12, g: 0.55, b: 1, a: 1}
+  tacticalRole: 1
+  grantedMoves:
+  - blade_slash
+  - vanguard_guard
+  price: 104

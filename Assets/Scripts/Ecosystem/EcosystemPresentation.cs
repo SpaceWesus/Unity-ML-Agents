@@ -36,7 +36,9 @@ namespace Turtle.Ecosystem
         public void Refresh(Vector3 newDestination, Color color)
         {
             destination = newDestination;
-            label.text = $"{Profile.displayName}\nLv {Profile.level}";
+            var careerLevel = Profile.career?.CareerLevel ?? Mathf.Max(1, Profile.level);
+            var rank = EcosystemCareerRules.RankFor(Profile);
+            label.text = $"{Profile.displayName}\nLv {careerLevel}  //  Rank {rank}";
             humanoid.SetBodyColor(color);
             var moveSet = MoveSetFor(Profile.equippedGearId);
             humanoid.SetGear(moveSet, AccentFor(moveSet));

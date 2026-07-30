@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -9,288 +8,591 @@ namespace Turtle.Ecosystem
     [DisallowMultipleComponent]
     public sealed class EcosystemWorldController : MonoBehaviour
     {
-        private const string PlayerGuildId = "guild-azure";
-        private const float AutomaticDayDuration = 18f;
-        private const float WorldEventViewportHeight = 134f;
-        private const float WorldEventLineHeight = 21f;
-        private const float WorldEventWheelScale = 0.35f;
+        private const float AutomaticDayDuration = 20f;
+        private static readonly float[] AutomaticSpeedMultipliers = { 0.5f, 1f, 2f, 4f };
 
-        [SerializeField] private EcosystemGearDefinition[] gearCatalog = Array.Empty<EcosystemGearDefinition>();
+        [SerializeField] private EcosystemGearDefinition[] gearCatalog =
+            Array.Empty<EcosystemGearDefinition>();
         [SerializeField] private EcosystemPlayerController playerController;
+        [SerializeField] private bool spawnThreeDimensionalHunterViews;
+        [SerializeField] private bool automaticAdvanceEnabled = true;
+        [SerializeField, Range(0, 3)] private int automaticSpeedIndex = 1;
+        [Header("2D spatial ecosystem")]
+        [SerializeField] private EcosystemSpatialWorldView spatialWorldView;
+        [SerializeField] private EcosystemSpatialHud spatialHud;
+        [SerializeField] private EcosystemPlayerInput2D playerInput2D;
+        [SerializeField] private EcosystemMapCameraController mapCameraController;
+        [SerializeField] private EcosystemDungeonWorldView dungeonWorldView;
 
         private readonly List<EcosystemHunterView> hunterViews = new();
         private EcosystemWorldState state;
         private EcosystemSimulation simulation;
-        private int selectedHunterIndex = 1;
-        private int selectedMissionIndex;
+        private EcosystemSaveRepository saveRepository;
+        private EcosystemStrategyView strategyView;
         private float nextAutomaticDay;
-        private GUIStyle headingStyle;
-        private GUIStyle bodyStyle;
-        private GUIStyle dimStyle;
-        private Vector2 logScroll;
+        private float encounterClockAccumulator;
+        private EcosystemPlayerIntent2D latestPlayerIntent;
+        private bool bufferedPrimaryAttack;
+        private bool bufferedInteraction;
 
         public EcosystemWorldState State => state;
-        public string SavePath => Path.Combine(
-            Application.persistentDataPath,
-            "ecosystem-slice-v1.json");
+        public IReadOnlyList<EcosystemGearDefinition> GearCatalog => gearCatalog;
+        public string LastActionMessage { get; private set; } = string.Empty;
+        public string SavePath => saveRepository?.ActiveSavePath ?? string.Empty;
+        public EcosystemSpatialWorldView SpatialWorldView => spatialWorldView;
+        public EcosystemDungeonWorldView DungeonWorldView => dungeonWorldView;
+        public float AutomaticAdvanceMultiplier =>
+            AutomaticSpeedMultipliers[Mathf.Clamp(automaticSpeedIndex, 0, AutomaticSpeedMultipliers.Length - 1)];
+        public float AutomaticDayIntervalSeconds => AutomaticDayDuration / AutomaticAdvanceMultiplier;
+        public bool AutomaticAdvanceEnabled
+        {
+            get => automaticAdvanceEnabled;
+            set
+            {
+                automaticAdvanceEnabled = value;
+                ScheduleNextAutomaticDay();
+            }
+        }
 
 #if UNITY_EDITOR
         public void ConfigureEditor(
             EcosystemGearDefinition[] availableGear,
-            EcosystemPlayerController scenePlayer)
+            EcosystemPlayerController scenePlayer,
+            EcosystemSpatialWorldView authoredSpatialWorldView = null,
+            EcosystemSpatialHud authoredSpatialHud = null,
+            EcosystemPlayerInput2D authoredPlayerInput = null,
+            EcosystemMapCameraController authoredMapCamera = null,
+            EcosystemDungeonWorldView authoredDungeonWorldView = null)
         {
             gearCatalog = availableGear;
             playerController = scenePlayer;
+            spatialWorldView = authoredSpatialWorldView;
+            spatialHud = authoredSpatialHud;
+            playerInput2D = authoredPlayerInput;
+            mapCameraController = authoredMapCamera;
+            dungeonWorldView = authoredDungeonWorldView;
         }
 #endif
 
         private void Awake()
         {
-            state = LoadOrCreateState();
+            gearCatalog ??= Array.Empty<EcosystemGearDefinition>();
+            saveRepository = new EcosystemSaveRepository(gearCatalog);
+            state = saveRepository.LoadOrCreate(out var loadStatus);
+            EcosystemWorldFactory.UpgradeAndNormalize(state, gearCatalog);
             simulation = new EcosystemSimulation(state, gearCatalog);
-            selectedHunterIndex = Mathf.Clamp(selectedHunterIndex, 1, state.hunters.Count - 1);
+            LastActionMessage = loadStatus;
+
+            // This scene is now a mechanics-first 2D campaign prototype. The legacy 3D
+            // character remains serialized for later reuse, but does not capture mouse/input.
+            if (playerController != null)
+            {
+                playerController.enabled = false;
+            }
+            var cameraRig = FindFirstObjectByType<EcosystemCameraRig>();
+            if (cameraRig != null)
+            {
+                cameraRig.enabled = false;
+            }
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+
             ApplyPlayerGear();
-            SpawnHunterViews();
-            RefreshHunterViews();
-            nextAutomaticDay = Time.unscaledTime + AutomaticDayDuration;
+            if (spawnThreeDimensionalHunterViews)
+            {
+                SpawnHunterViews();
+                RefreshHunterViews();
+            }
+
+            strategyView = GetComponent<EcosystemStrategyView>();
+            if (strategyView != null)
+            {
+                // Retained for data/debug archaeology, but the playable spatial world is now
+                // the scene's primary presentation instead of a full-screen text dashboard.
+                strategyView.enabled = false;
+            }
+
+            spatialWorldView ??= GetComponent<EcosystemSpatialWorldView>();
+            spatialHud ??= GetComponent<EcosystemSpatialHud>();
+            playerInput2D ??= GetComponent<EcosystemPlayerInput2D>();
+            dungeonWorldView ??= GetComponent<EcosystemDungeonWorldView>();
+            mapCameraController ??= FindFirstObjectByType<EcosystemMapCameraController>();
+            spatialWorldView?.Initialize(this);
+            if (spatialWorldView != null && dungeonWorldView != null)
+            {
+                spatialWorldView.SetSpatialPoseSource(dungeonWorldView);
+                spatialWorldView.SetEncounterPresentationSource(dungeonWorldView);
+            }
+            if (dungeonWorldView != null)
+            {
+                dungeonWorldView.LeaveViewRequested += LeaveDungeonView;
+                dungeonWorldView.RetreatRequested += RetreatFromViewedDungeon;
+            }
+            if (playerInput2D != null)
+            {
+                playerInput2D.GameplayInputEnabled = false;
+            }
+            ShowPlayerEncounterIfPresent();
+            ScheduleNextAutomaticDay();
         }
 
         private void Update()
         {
-            ScrollWorldEvents();
-
             var keyboard = Keyboard.current;
-            if (keyboard == null)
+            if (keyboard != null)
+            {
+                if (keyboard.tKey.wasPressedThisFrame)
+                {
+                    AdvanceDays(1);
+                }
+                if (keyboard.f5Key.wasPressedThisFrame)
+                {
+                    SaveNow();
+                }
+                if (keyboard.f9Key.wasPressedThisFrame)
+                {
+                    ReloadNow();
+                }
+                if (keyboard.pKey.wasPressedThisFrame)
+                {
+                    ToggleAutomaticAdvance();
+                }
+            }
+
+            CapturePlayerEncounterInput();
+            AdvanceEncounterClock();
+
+            if (automaticAdvanceEnabled && Time.unscaledTime >= nextAutomaticDay)
+            {
+                AdvanceDaysInternal(1, false);
+            }
+        }
+
+        private void CapturePlayerEncounterInput()
+        {
+            if (playerInput2D == null || dungeonWorldView == null ||
+                !dungeonWorldView.IsShowingEncounter)
             {
                 return;
             }
 
-            if (keyboard.leftArrowKey.wasPressedThisFrame)
-            {
-                SelectHunter(-1);
-            }
-            if (keyboard.rightArrowKey.wasPressedThisFrame)
-            {
-                SelectHunter(1);
-            }
-            if (keyboard.upArrowKey.wasPressedThisFrame)
-            {
-                SelectMission(-1);
-            }
-            if (keyboard.downArrowKey.wasPressedThisFrame)
-            {
-                SelectMission(1);
-            }
-            if (keyboard.iKey.wasPressedThisFrame)
-            {
-                InviteSelectedHunter();
-            }
-            if (keyboard.pKey.wasPressedThisFrame)
-            {
-                ProposeRaid();
-            }
-            if (keyboard.tKey.wasPressedThisFrame)
-            {
-                AdvanceDay("The player waited and watched the world move.");
-            }
-            if (keyboard.digit1Key.wasPressedThisFrame)
-            {
-                EquipPlayer(0);
-            }
-            if (keyboard.digit2Key.wasPressedThisFrame)
-            {
-                EquipPlayer(1);
-            }
-            if (keyboard.digit3Key.wasPressedThisFrame)
-            {
-                EquipPlayer(2);
-            }
-            if (keyboard.f5Key.wasPressedThisFrame)
-            {
-                Save();
-                AddEvent($"DAY {state.day}: World state saved.");
-            }
-
-            if (Time.unscaledTime >= nextAutomaticDay)
-            {
-                AdvanceDay("The wider world advanced on its own.");
-            }
+            latestPlayerIntent = playerInput2D.CurrentIntent;
+            bufferedPrimaryAttack |= latestPlayerIntent.LightAttackPressed;
+            bufferedInteraction |= latestPlayerIntent.InteractPressed;
         }
 
-        private void ScrollWorldEvents()
+        private void AdvanceEncounterClock()
         {
-            var mouse = Mouse.current;
-            if (mouse == null)
+            if (simulation == null || state?.encounters == null || state.encounters.Count == 0)
             {
                 return;
             }
 
-            var wheel = mouse.scroll.ReadValue().y;
-            if (Mathf.Abs(wheel) < 0.01f)
+            var directlyPlaying = dungeonWorldView != null &&
+                                  dungeonWorldView.IsShowingEncounter;
+            if (!automaticAdvanceEnabled && !directlyPlaying)
             {
                 return;
             }
 
-            var contentHeight = Mathf.Max(
-                WorldEventViewportHeight,
-                state.eventLog.Count * WorldEventLineHeight);
-            var maximum = Mathf.Max(0f, contentHeight - WorldEventViewportHeight);
-            logScroll.y = Mathf.Clamp(
-                logScroll.y - wheel * WorldEventWheelScale,
-                0f,
-                maximum);
-        }
-
-        private void SelectHunter(int direction)
-        {
-            selectedHunterIndex += direction;
-            if (selectedHunterIndex <= 0)
+            var clockMultiplier = automaticAdvanceEnabled
+                ? AutomaticAdvanceMultiplier
+                : 1f;
+            encounterClockAccumulator += Time.unscaledDeltaTime * clockMultiplier;
+            var steps = 0;
+            while (encounterClockAccumulator >= EcosystemEncounterSimulation.FixedStepSeconds &&
+                   steps < 8)
             {
-                selectedHunterIndex = state.hunters.Count - 1;
+                encounterClockAccumulator -= EcosystemEncounterSimulation.FixedStepSeconds;
+                simulation.AdvanceEncounterSteps(1, OverrideControlledEncounterIntent);
+                bufferedPrimaryAttack = false;
+                bufferedInteraction = false;
+                steps++;
             }
-            else if (selectedHunterIndex >= state.hunters.Count)
+
+            if (steps == 0)
             {
-                selectedHunterIndex = 1;
+                return;
             }
+            if (steps == 8)
+            {
+                // Avoid a runaway catch-up burst after a breakpoint or long Editor stall.
+                encounterClockAccumulator = Mathf.Min(
+                    encounterClockAccumulator,
+                    EcosystemEncounterSimulation.FixedStepSeconds);
+            }
+            dungeonWorldView?.RefreshPresentation();
+            spatialWorldView?.RefreshWorld();
         }
 
-        private void SelectMission(int direction)
+        private bool OverrideControlledEncounterIntent(
+            DungeonEncounterState encounter,
+            EncounterParticipantState participant,
+            out EncounterInputIntent intent)
         {
-            selectedMissionIndex =
-                (selectedMissionIndex + direction + state.missions.Count) %
-                state.missions.Count;
+            intent = null;
+            if (encounter == null || participant == null || dungeonWorldView == null ||
+                !dungeonWorldView.IsShowingEncounter ||
+                !ReferenceEquals(encounter, dungeonWorldView.ActiveEncounter) ||
+                participant.participantKind != EncounterParticipantKind.Hunter ||
+                participant.sourceHunterId != state?.playerHunterId)
+            {
+                return false;
+            }
+
+            var aim = latestPlayerIntent.AimPlanarPosition - participant.position;
+            if (aim.sqrMagnitude <= 0.0001f)
+            {
+                aim = participant.facing;
+            }
+            intent = new EncounterInputIntent
+            {
+                entityId = participant.entityId,
+                movement = latestPlayerIntent.Movement,
+                aim = aim.normalized,
+                primaryAttack = bufferedPrimaryAttack,
+                interact = bufferedInteraction
+            };
+            return true;
         }
 
-        private void EquipPlayer(int gearIndex)
+        private void ShowPlayerEncounterIfPresent()
         {
-            if (gearIndex < 0 || gearIndex >= gearCatalog.Length)
+            if (state == null || dungeonWorldView == null)
+            {
+                return;
+            }
+            var player = FindHunter(state.playerHunterId);
+            var encounterId = player?.currentEncounterId;
+            if (string.IsNullOrEmpty(encounterId))
+            {
+                var contract = state.contracts?.Find(item =>
+                    item != null && item.status == ContractStatus.Active &&
+                    item.acceptedPartyId == player?.partyId);
+                encounterId = contract?.activeEncounterId;
+            }
+            var encounter = string.IsNullOrEmpty(encounterId)
+                ? null
+                : state.encounters?.Find(item => item != null && item.id == encounterId);
+            var gate = encounter == null
+                ? null
+                : state.gates?.Find(item => item != null && item.id == encounter.gateId);
+            if (encounter == null || gate == null)
             {
                 return;
             }
 
-            Player.equippedGearId = gearCatalog[gearIndex].GearId;
-            Player.currentActivity = $"Training with {gearCatalog[gearIndex].DisplayName}";
+            latestPlayerIntent = default;
+            bufferedPrimaryAttack = false;
+            bufferedInteraction = false;
+            encounterClockAccumulator = 0f;
+            dungeonWorldView.ShowEncounter(gate, encounter, state.playerHunterId);
+            if (playerInput2D != null)
+            {
+                playerInput2D.GameplayInputEnabled = true;
+            }
+        }
+
+        public void LeaveDungeonView()
+        {
+            dungeonWorldView?.HideEncounter();
+            if (playerInput2D != null)
+            {
+                playerInput2D.GameplayInputEnabled = false;
+            }
+            bufferedPrimaryAttack = false;
+            bufferedInteraction = false;
+            spatialWorldView?.RefreshWorld();
+            spatialWorldView?.FocusControlledHunter(false);
+        }
+
+        public void RetreatFromViewedDungeon()
+        {
+            var encounter = dungeonWorldView?.ActiveEncounter;
+            var contract = encounter == null
+                ? null
+                : state?.contracts?.Find(item => item != null && item.id == encounter.contractId);
+            if (contract == null)
+            {
+                LastActionMessage = "There is no active gate expedition to retreat from.";
+                return;
+            }
+            TryPlayerAction(HunterActionType.Retreat, contractId: contract.id);
+        }
+
+        public bool ViewEncounter(string encounterId)
+        {
+            var encounter = string.IsNullOrEmpty(encounterId)
+                ? null
+                : state?.encounters?.Find(item => item != null && item.id == encounterId);
+            var gate = encounter == null
+                ? null
+                : state?.gates?.Find(item => item != null && item.id == encounter.gateId);
+            if (encounter == null || gate == null || dungeonWorldView == null)
+            {
+                LastActionMessage = "That gate does not currently have a materializable encounter.";
+                return false;
+            }
+
+            var controlledHunterId = encounter.participants?.Exists(participant =>
+                participant != null && participant.sourceHunterId == state.playerHunterId) == true
+                ? state.playerHunterId
+                : string.Empty;
+            dungeonWorldView.ShowEncounter(gate, encounter, controlledHunterId);
+            if (playerInput2D != null)
+            {
+                playerInput2D.GameplayInputEnabled = !string.IsNullOrEmpty(controlledHunterId);
+            }
+            LastActionMessage = string.IsNullOrEmpty(controlledHunterId)
+                ? $"Spectating {gate.displayName}; all hunters remain AI-controlled."
+                : $"Controlling {FindHunter(controlledHunterId)?.displayName} in {gate.displayName}.";
+            return true;
+        }
+
+        public EcosystemActionResult TryPlayerAction(
+            HunterActionType action,
+            string targetHunterId = "",
+            string guildId = "",
+            string contractId = "",
+            string locationId = "",
+            string gearId = "",
+            string invitationId = "",
+            string partyId = "",
+            string progressionId = "",
+            int slotIndex = -1,
+            int pointAmount = 1)
+        {
+            if (simulation == null || state == null)
+            {
+                var unavailable = EcosystemActionResult.Failed("The world simulation is not ready.");
+                LastActionMessage = unavailable.summary;
+                return unavailable;
+            }
+
+            var request = CreatePlayerActionRequest(
+                action,
+                targetHunterId,
+                guildId,
+                contractId,
+                locationId,
+                gearId,
+                invitationId,
+                partyId,
+                progressionId,
+                slotIndex,
+                pointAmount);
+            var result = simulation.ExecutePlayerAction(request);
+            LastActionMessage = result.summary;
+            if (result.success)
+            {
+                ApplyPlayerGear();
+                RefreshHunterViews();
+                spatialWorldView?.RefreshWorld();
+                if (action == HunterActionType.EnterDungeon)
+                {
+                    ShowPlayerEncounterIfPresent();
+                }
+                else if (action == HunterActionType.Retreat)
+                {
+                    LeaveDungeonView();
+                }
+                SaveWorld(false);
+            }
+            return result;
+        }
+
+        public bool CanPlayerAction(
+            HunterActionType action,
+            out string reason,
+            string targetHunterId = "",
+            string guildId = "",
+            string contractId = "",
+            string locationId = "",
+            string gearId = "",
+            string invitationId = "",
+            string partyId = "",
+            string progressionId = "",
+            int slotIndex = -1,
+            int pointAmount = 1)
+        {
+            if (simulation == null || state == null)
+            {
+                reason = "The world simulation is not ready.";
+                return false;
+            }
+
+            var request = CreatePlayerActionRequest(
+                action,
+                targetHunterId,
+                guildId,
+                contractId,
+                locationId,
+                gearId,
+                invitationId,
+                partyId,
+                progressionId,
+                slotIndex,
+                pointAmount);
+            return simulation.Actions.CanExecute(request, out reason);
+        }
+
+        public void AdvanceDays(int days)
+        {
+            AdvanceDaysInternal(days, true);
+        }
+
+        private void AdvanceDaysInternal(int days, bool advanceEncounterClock)
+        {
+            if (simulation == null || days <= 0)
+            {
+                return;
+            }
+
+            simulation.AdvanceDays(days, advanceEncounterClock);
+            LastActionMessage = days == 1
+                ? $"Advanced to day {state.day}."
+                : $"Advanced {days} days to day {state.day} (week {(state.day - 1) / 7 + 1}).";
             ApplyPlayerGear();
-            AddEvent($"DAY {state.day}: {Player.displayName} equipped {gearCatalog[gearIndex].DisplayName}.");
-            Save();
+            RefreshHunterViews();
+            spatialWorldView?.RefreshWorld();
+            dungeonWorldView?.RefreshPresentation();
+            ScheduleNextAutomaticDay();
+            SaveWorld(false);
         }
 
-        private void InviteSelectedHunter()
+        public void AdjustAutomaticSpeed(int direction)
         {
-            var candidate = SelectedHunter;
-            var playerRelationship = candidate.RelationshipWith(Player.id);
-            if (candidate.guildId == PlayerGuildId)
+            var previousIndex = automaticSpeedIndex;
+            automaticSpeedIndex = Mathf.Clamp(
+                automaticSpeedIndex + Math.Sign(direction),
+                0,
+                AutomaticSpeedMultipliers.Length - 1);
+            if (automaticSpeedIndex == previousIndex)
             {
-                AddEvent($"{candidate.displayName} is already a member of Azure Wake.");
                 return;
             }
 
-            if (!string.IsNullOrEmpty(candidate.guildId))
+            ScheduleNextAutomaticDay();
+            LastActionMessage =
+                $"Automatic world speed set to {AutomaticAdvanceMultiplier:0.#}x " +
+                $"(one day every {AutomaticDayIntervalSeconds:0.#} seconds).";
+        }
+
+        public void ToggleAutomaticAdvance()
+        {
+            AutomaticAdvanceEnabled = !AutomaticAdvanceEnabled;
+            LastActionMessage = AutomaticAdvanceEnabled
+                ? "Automatic world advancement resumed."
+                : "Automatic world advancement paused.";
+        }
+
+        public void SaveNow()
+        {
+            SaveWorld(true);
+        }
+
+        public void ReloadNow()
+        {
+            if (saveRepository == null)
             {
-                playerRelationship.rivalry = Mathf.Clamp(
-                    playerRelationship.rivalry + 0.08f,
-                    0f,
-                    1f);
-                Remember(candidate, Player.id, "poaching_attempt",
-                    $"{Player.displayName} tried to recruit them away from their guild.", -0.25f);
-                AddEvent($"{candidate.displayName} refuses to abandon their current guild.");
-                Save();
+                LastActionMessage = "Load failed: the save repository is not ready.";
                 return;
             }
 
-            var acceptance =
-                playerRelationship.affinity * 0.5f +
-                playerRelationship.trust * 0.7f +
-                candidate.loyalty * 0.35f +
-                candidate.ambition * 0.25f -
-                candidate.rivalryToward(Player.id) * 0.5f;
-            if (acceptance >= 0.15f)
+            try
             {
-                candidate.guildId = PlayerGuildId;
-                candidate.destinationId = PlayerGuildId;
-                candidate.currentActivity = "Joined Azure Wake";
-                state.guilds.Find(guild => guild.id == PlayerGuildId)?.memberIds.Add(candidate.id);
-                playerRelationship.trust = Mathf.Clamp(playerRelationship.trust + 0.18f, -1f, 1f);
-                Remember(candidate, Player.id, "guild_invitation",
-                    $"{Player.displayName} welcomed them into Azure Wake.", 0.45f);
-                AddEvent($"DAY {state.day}: {candidate.displayName} joined Azure Wake.");
+                state = saveRepository.LoadOrCreate(out var loadStatus);
+                EcosystemWorldFactory.UpgradeAndNormalize(state, gearCatalog);
+                simulation = new EcosystemSimulation(state, gearCatalog);
+                LastActionMessage = loadStatus;
+                ApplyPlayerGear();
+                RebuildHunterViews();
+                dungeonWorldView?.HideEncounter();
+                spatialWorldView?.Initialize(this);
+                ShowPlayerEncounterIfPresent();
+                ScheduleNextAutomaticDay();
             }
-            else
+            catch (Exception exception)
             {
-                playerRelationship.affinity = Mathf.Clamp(playerRelationship.affinity - 0.04f, -1f, 1f);
-                Remember(candidate, Player.id, "declined_invitation",
-                    $"Declined {Player.displayName}'s guild invitation.", -0.08f);
-                AddEvent($"{candidate.displayName} declined. Acceptance utility: {acceptance:0.00}.");
+                LastActionMessage = $"Load failed: {exception.Message}";
             }
-
-            RefreshHunterViews();
-            Save();
-        }
-
-        private void ProposeRaid()
-        {
-            var candidate = SelectedHunter;
-            var mission = SelectedMission;
-            var score = simulation.ScoreRaidInvitation(candidate, Player, mission);
-            if (score < 0.05f)
-            {
-                candidate.RelationshipWith(Player.id).affinity -= 0.02f;
-                Remember(candidate, Player.id, "declined_raid",
-                    $"Refused a dangerous invitation to {mission.displayName}.", -0.1f);
-                AddEvent($"{candidate.displayName} refused {mission.displayName}. Raid utility: {score:0.00}.");
-                Save();
-                return;
-            }
-
-            Player.destinationId = mission.id;
-            candidate.destinationId = mission.id;
-            var success = simulation.ResolvePartyRaid(
-                Player,
-                candidate,
-                mission,
-                GearPower(Player.equippedGearId),
-                GearPower(candidate.equippedGearId));
-            AddEvent(success
-                ? $"{candidate.displayName}'s trust increased after the shared victory."
-                : $"{candidate.displayName} remembers being wounded on the failed expedition.");
-            RefreshHunterViews();
-            Save();
-        }
-
-        private void AdvanceDay(string reason)
-        {
-            AddEvent(reason);
-            simulation.AdvanceDay();
-            nextAutomaticDay = Time.unscaledTime + AutomaticDayDuration;
-            RefreshHunterViews();
-            Save();
         }
 
         private void ApplyPlayerGear()
         {
-            var gear = FindGear(Player.equippedGearId);
-            if (gear == null && gearCatalog.Length > 0)
-            {
-                gear = gearCatalog[0];
-                Player.equippedGearId = gear.GearId;
-            }
-
+            var player = FindHunter(state?.playerHunterId);
+            var gear = FindGear(player?.equippedGearId);
             if (gear != null && playerController != null)
             {
                 playerController.Equip(gear);
             }
         }
 
+        private EcosystemActionRequest CreatePlayerActionRequest(
+            HunterActionType action,
+            string targetHunterId,
+            string guildId,
+            string contractId,
+            string locationId,
+            string gearId,
+            string invitationId,
+            string partyId,
+            string progressionId,
+            int slotIndex,
+            int pointAmount)
+        {
+            return new EcosystemActionRequest(action, state.playerHunterId)
+            {
+                targetHunterId = targetHunterId,
+                guildId = guildId,
+                contractId = contractId,
+                locationId = locationId,
+                gearId = gearId,
+                invitationId = invitationId,
+                partyId = partyId,
+                progressionId = progressionId,
+                slotIndex = slotIndex,
+                pointAmount = pointAmount
+            };
+        }
+
+        private void ScheduleNextAutomaticDay()
+        {
+            nextAutomaticDay = Time.unscaledTime + AutomaticDayIntervalSeconds;
+        }
+
         private void SpawnHunterViews()
         {
-            for (var index = 1; index < state.hunters.Count; index++)
+            foreach (var hunter in state.hunters)
             {
+                if (hunter == null || hunter.id == state.playerHunterId || !hunter.IsActive)
+                {
+                    continue;
+                }
+
                 var viewObject = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-                viewObject.name = $"Hunter - {state.hunters[index].displayName}";
+                viewObject.name = $"Hunter - {hunter.displayName}";
                 viewObject.transform.SetParent(transform);
                 var view = viewObject.AddComponent<EcosystemHunterView>();
-                view.Initialize(state.hunters[index]);
+                view.Initialize(hunter);
                 hunterViews.Add(view);
+            }
+        }
+
+        private void RebuildHunterViews()
+        {
+            foreach (var view in hunterViews)
+            {
+                if (view != null)
+                {
+                    Destroy(view.gameObject);
+                }
+            }
+            hunterViews.Clear();
+            if (spawnThreeDimensionalHunterViews)
+            {
+                SpawnHunterViews();
+                RefreshHunterViews();
             }
         }
 
@@ -298,355 +600,101 @@ namespace Turtle.Ecosystem
         {
             foreach (var view in hunterViews)
             {
-                view.Refresh(ResolveDestination(view.Profile), ResolveHunterColor(view.Profile));
+                if (view == null || view.Profile == null)
+                {
+                    continue;
+                }
+                view.gameObject.SetActive(view.Profile.IsActive);
+                if (view.Profile.IsActive)
+                {
+                    view.Refresh(ResolveDestination(view.Profile), ResolveHunterColor(view.Profile));
+                }
             }
         }
 
         private Vector3 ResolveDestination(HunterProfile hunter)
         {
-            var anchor = string.IsNullOrEmpty(hunter.destinationId)
-                ? null
-                : GameObject.Find(hunter.destinationId);
-            if (anchor == null)
+            var location = state.map.locations.Find(item => item.id == hunter.locationId);
+            if (location == null)
             {
-                anchor = GameObject.Find("Hub_Center");
+                return Vector3.up;
             }
 
-            var hash = Mathf.Abs(hunter.id.GetHashCode());
-            var angle = hash % 360 * Mathf.Deg2Rad;
-            var radius = 1.5f + hash % 4 * 0.45f;
-            return anchor.transform.position +
-                   new Vector3(Mathf.Cos(angle), 1f, Mathf.Sin(angle)) * radius;
+            var hash = EcosystemDeterministicRandom.StableHash(hunter.id);
+            var angle = hash % 360u * Mathf.Deg2Rad;
+            var offset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) *
+                         (0.6f + hash % 4u * 0.2f);
+            return new Vector3(
+                Mathf.Lerp(-18f, 18f, location.mapPosition.x),
+                1f,
+                Mathf.Lerp(-18f, 18f, location.mapPosition.y)) + offset;
         }
 
         private Color ResolveHunterColor(HunterProfile hunter)
         {
-            return hunter.guildId switch
+            var guildIndex = state.guilds.FindIndex(guild => guild.id == hunter.guildId);
+            return guildIndex switch
             {
-                PlayerGuildId => new Color(0.08f, 0.5f, 1f),
-                "guild-crimson" => new Color(0.9f, 0.08f, 0.12f),
+                0 => new Color(0.08f, 0.5f, 1f),
+                1 => new Color(0.9f, 0.08f, 0.12f),
+                2 => new Color(0.92f, 0.62f, 0.08f),
+                3 => new Color(0.88f, 0.9f, 0.96f),
+                4 => new Color(0.56f, 0.16f, 0.76f),
                 _ => new Color(0.68f, 0.68f, 0.72f)
             };
         }
 
-        private EcosystemWorldState LoadOrCreateState()
+        private void SaveWorld(bool userInitiated)
         {
-            if (File.Exists(SavePath))
-            {
-                try
-                {
-                    var loaded = JsonUtility.FromJson<EcosystemWorldState>(File.ReadAllText(SavePath));
-                    if (loaded != null && loaded.saveVersion == 1 && loaded.hunters.Count > 1)
-                    {
-                        return loaded;
-                    }
-                }
-                catch (Exception exception)
-                {
-                    var backup = SavePath + $".corrupt-{DateTime.UtcNow.Ticks}";
-                    File.Copy(SavePath, backup, true);
-                    Debug.LogWarning($"Ecosystem save was unreadable and was backed up to {backup}: {exception.Message}");
-                }
-            }
-
-            var created = CreateInitialState();
-            return created;
-        }
-
-        private void Save()
-        {
-            if (state == null)
+            if (saveRepository == null || state == null)
             {
                 return;
             }
 
-            try
+            if (saveRepository.Save(state, out var error))
             {
-                var directory = Path.GetDirectoryName(SavePath);
-                if (!string.IsNullOrEmpty(directory))
+                if (userInitiated)
                 {
-                    Directory.CreateDirectory(directory);
+                    LastActionMessage = $"Saved day {state.day} to {saveRepository.ActiveSavePath}.";
                 }
-
-                var temporaryPath = SavePath + ".tmp";
-                File.WriteAllText(temporaryPath, JsonUtility.ToJson(state, true));
-                File.Copy(temporaryPath, SavePath, true);
-                File.Delete(temporaryPath);
             }
-            catch (Exception exception)
+            else
             {
-                Debug.LogError($"Could not save Ecosystem Slice: {exception.Message}");
+                LastActionMessage = $"Save failed: {error}";
             }
         }
 
-        private EcosystemWorldState CreateInitialState()
+        private HunterProfile FindHunter(string id) =>
+            string.IsNullOrEmpty(id) || state == null
+                ? null
+                : state.hunters.Find(hunter => hunter.id == id);
+
+        private EcosystemGearDefinition FindGear(string id)
         {
-            var created = new EcosystemWorldState
+            if (string.IsNullOrEmpty(id))
             {
-                playerHunterId = "hunter-player"
-            };
-            created.guilds.Add(new GuildState
-            {
-                id = PlayerGuildId,
-                displayName = "Azure Wake",
-                resources = 80,
-                territory = 1,
-                prestige = 12f,
-                memberIds = new List<string> { "hunter-player" }
-            });
-            created.guilds.Add(new GuildState
-            {
-                id = "guild-crimson",
-                displayName = "Crimson Compact",
-                resources = 105,
-                territory = 2,
-                prestige = 17f,
-                memberIds = new List<string> { "hunter-mara", "hunter-voss" }
-            });
-            created.missions.Add(new MissionState
-            {
-                id = "mission-goblin",
-                displayName = "Ash-Tunnel Gate",
-                difficulty = 1,
-                reward = 18,
-                favoredTrait = "courage"
-            });
-            created.missions.Add(new MissionState
-            {
-                id = "mission-crypt",
-                displayName = "Drowned Crypt",
-                difficulty = 3,
-                reward = 42,
-                favoredTrait = "ambition"
-            });
-            created.missions.Add(new MissionState
-            {
-                id = "mission-spire",
-                displayName = "Voidglass Spire",
-                difficulty = 5,
-                reward = 78,
-                favoredTrait = "greed"
-            });
-
-            AddHunter(created, "hunter-player", "Rowan Vale", 2, 0.72f, 0.68f, 0.61f, 0.35f,
-                "Found a guild that outlives them", PlayerGuildId, GearId(0));
-            AddHunter(created, "hunter-mara", "Mara Quill", 3, 0.83f, 0.77f, 0.42f, 0.51f,
-                "Become the most feared gatebreaker", "guild-crimson", GearId(1));
-            AddHunter(created, "hunter-voss", "Voss Calder", 4, 0.66f, 0.88f, 0.73f, 0.29f,
-                "Expand Crimson territory", "guild-crimson", GearId(0));
-            AddHunter(created, "hunter-iona", "Iona Reed", 2, 0.48f, 0.55f, 0.91f, 0.22f,
-                "Find a guild worthy of loyalty", string.Empty, GearId(0));
-            AddHunter(created, "hunter-kest", "Kest Ardyn", 3, 0.58f, 0.92f, 0.34f, 0.82f,
-                "Acquire a legendary relic", string.Empty, GearId(2));
-            AddHunter(created, "hunter-brann", "Brann Oath", 2, 0.91f, 0.44f, 0.79f, 0.18f,
-                "Protect weaker hunters", string.Empty, GearId(1));
-            AddHunter(created, "hunter-sable", "Sable Nyx", 4, 0.69f, 0.81f, 0.28f, 0.75f,
-                "Never be controlled again", string.Empty, GearId(2));
-            AddHunter(created, "hunter-tarin", "Tarin Moss", 1, 0.39f, 0.63f, 0.84f, 0.41f,
-                "Survive long enough to become renowned", string.Empty, GearId(0));
-
-            foreach (var hunter in created.hunters)
-            {
-                hunter.destinationId = string.IsNullOrEmpty(hunter.guildId)
-                    ? "Hub_Center"
-                    : hunter.guildId;
-                hunter.currentActivity = "Observing the guild district";
+                return null;
             }
-
-            created.eventLog.Add("DAY 1: Azure Wake opened its doors in the frontier district.");
-            created.eventLog.Add("DAY 1: Eight persistent hunters entered the simulation.");
-            return created;
-        }
-
-        private static void AddHunter(
-            EcosystemWorldState created,
-            string id,
-            string hunterName,
-            int level,
-            float courage,
-            float ambition,
-            float loyalty,
-            float greed,
-            string goal,
-            string guildId,
-            string gearId)
-        {
-            created.hunters.Add(new HunterProfile
-            {
-                id = id,
-                displayName = hunterName,
-                level = level,
-                courage = courage,
-                ambition = ambition,
-                loyalty = loyalty,
-                greed = greed,
-                goal = goal,
-                guildId = guildId,
-                equippedGearId = gearId
-            });
-        }
-
-        private void Remember(
-            HunterProfile owner,
-            string subjectId,
-            string eventType,
-            string summary,
-            float weight)
-        {
-            owner.memories.Add(new HunterMemory
-            {
-                day = state.day,
-                subjectId = subjectId,
-                eventType = eventType,
-                summary = summary,
-                emotionalWeight = weight
-            });
-            while (owner.memories.Count > 12)
-            {
-                owner.memories.RemoveAt(0);
-            }
-        }
-
-        private int GearPower(string gearId)
-        {
-            return FindGear(gearId)?.Power ?? 0;
-        }
-
-        private EcosystemGearDefinition FindGear(string gearId)
-        {
             foreach (var gear in gearCatalog)
             {
-                if (gear != null && gear.GearId == gearId)
+                if (gear != null && gear.GearId == id)
                 {
                     return gear;
                 }
             }
-
             return null;
         }
 
-        private string GearName(string gearId)
-        {
-            return FindGear(gearId)?.DisplayName ?? "Unarmed";
-        }
-
-        private string GearId(int index)
-        {
-            return index >= 0 && index < gearCatalog.Length
-                ? gearCatalog[index].GearId
-                : string.Empty;
-        }
-
-        private void AddEvent(string entry)
-        {
-            state.eventLog.Add(entry);
-            while (state.eventLog.Count > 18)
-            {
-                state.eventLog.RemoveAt(0);
-            }
-        }
-
-        private HunterProfile Player => state.hunters.Find(hunter => hunter.id == state.playerHunterId);
-        private HunterProfile SelectedHunter => state.hunters[selectedHunterIndex];
-        private MissionState SelectedMission => state.missions[selectedMissionIndex];
-
         private void OnDisable()
         {
-            Save();
-        }
-
-        private void OnGUI()
-        {
-            BuildStyles();
-            GUI.Box(new Rect(14f, 14f, 410f, 282f), GUIContent.none);
-            GUI.Label(new Rect(28f, 22f, 382f, 30f), $"ECOSYSTEM SLICE  //  DAY {state.day}", headingStyle);
-            GUI.Label(new Rect(28f, 56f, 382f, 25f),
-                $"YOU: {Player.displayName}  LV {Player.level}  |  {GearName(Player.equippedGearId)}", bodyStyle);
-            GUI.Label(new Rect(28f, 82f, 382f, 22f),
-                $"Azure Wake: {state.guilds[0].resources} resources, {state.guilds[0].memberIds.Count} hunters", dimStyle);
-
-            var hunter = SelectedHunter;
-            var relation = hunter.RelationshipWith(Player.id);
-            GUI.Label(new Rect(28f, 114f, 382f, 25f),
-                $"SELECTED HUNTER: {hunter.displayName}  LV {hunter.level}", headingStyle);
-            GUI.Label(new Rect(28f, 142f, 382f, 22f),
-                $"{GearName(hunter.equippedGearId)}  |  {GuildName(hunter.guildId)}  |  Wounds {hunter.wounds}", bodyStyle);
-            GUI.Label(new Rect(28f, 166f, 382f, 42f),
-                $"Goal: {hunter.goal}\nNow: {hunter.currentActivity}", dimStyle);
-            GUI.Label(new Rect(28f, 210f, 382f, 22f),
-                $"Trust {relation.trust:0.00}  Affinity {relation.affinity:0.00}  Rivalry {relation.rivalry:0.00}", bodyStyle);
-            GUI.Label(new Rect(28f, 236f, 382f, 42f),
-                hunter.memories.Count == 0
-                    ? "Latest memory: none yet"
-                    : $"Latest memory: {hunter.memories[^1].summary}", dimStyle);
-
-            GUI.Box(new Rect(Screen.width - 420f, 14f, 406f, 230f), GUIContent.none);
-            GUI.Label(new Rect(Screen.width - 404f, 22f, 374f, 28f), "MISSION BOARD", headingStyle);
-            GUI.Label(new Rect(Screen.width - 404f, 55f, 374f, 25f),
-                $"{SelectedMission.displayName}  |  Rank {SelectedMission.difficulty}  |  Reward {SelectedMission.reward}", bodyStyle);
-            GUI.Label(new Rect(Screen.width - 404f, 88f, 374f, 126f),
-                "LEFT/RIGHT  Select hunter\nUP/DOWN  Select mission\nI  Invite hunter to Azure Wake\nP  Propose selected raid\n1/2/3  Equip moveset gear\nT  Advance one day   |   F5  Save\nWASD + Mouse  Move/aim   |   LMB  Use gear attack",
-                dimStyle);
-
-            GUI.Box(new Rect(14f, Screen.height - 196f, 610f, 182f), GUIContent.none);
-            GUI.Label(new Rect(28f, Screen.height - 188f, 580f, 25f), "WORLD EVENTS", headingStyle);
-            logScroll = GUI.BeginScrollView(
-                new Rect(24f, Screen.height - 158f, 590f, 134f),
-                logScroll,
-                new Rect(0f, 0f, 560f, Mathf.Max(
-                    WorldEventViewportHeight,
-                    state.eventLog.Count * WorldEventLineHeight)));
-            for (var index = 0; index < state.eventLog.Count; index++)
+            if (dungeonWorldView != null)
             {
-                GUI.Label(
-                    new Rect(4f, index * WorldEventLineHeight, 548f, WorldEventLineHeight),
-                    state.eventLog[index],
-                    dimStyle);
+                dungeonWorldView.LeaveViewRequested -= LeaveDungeonView;
+                dungeonWorldView.RetreatRequested -= RetreatFromViewedDungeon;
             }
-            GUI.EndScrollView();
-        }
-
-        private string GuildName(string guildId)
-        {
-            if (string.IsNullOrEmpty(guildId))
-            {
-                return "Independent";
-            }
-
-            return state.guilds.Find(guild => guild.id == guildId)?.displayName ?? "Unknown guild";
-        }
-
-        private void BuildStyles()
-        {
-            if (headingStyle != null)
-            {
-                return;
-            }
-
-            headingStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 17,
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = new Color(0.4f, 0.78f, 1f) }
-            };
-            bodyStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 14,
-                normal = { textColor = new Color(0.9f, 0.94f, 1f) }
-            };
-            dimStyle = new GUIStyle(bodyStyle)
-            {
-                wordWrap = true,
-                normal = { textColor = new Color(0.7f, 0.76f, 0.84f) }
-            };
-        }
-    }
-
-    internal static class EcosystemHunterExtensions
-    {
-        public static float rivalryToward(this HunterProfile hunter, string otherHunterId)
-        {
-            return hunter.RelationshipWith(otherHunterId).rivalry;
+            SaveWorld(false);
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
     }
 }
