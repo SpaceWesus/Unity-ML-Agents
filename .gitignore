@@ -73,3 +73,68 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+/Assets/TerrainDemoScene_URP
+/Assets/UnityTechnologies/ParticlePack
+*.meta
+Assets/TutorialInfo/Readme.cs.meta
+Assets/TutorialInfo/Readme.cs
+Assets/TutorialInfo/Editor/ReadmeEditor.cs.meta
+Assets/TutorialInfo/Editor/ReadmeEditor.cs
+Assets/TerrainData_f8b91fdb-2e82-4191-8747-01e82b62c3f1.asset
+Assets/TerrainData_edc7b6e8-2ff4-4e05-8820-945423fc9354.asset
+Assets/TerrainData_d926638c-1e6a-40dd-b8bc-b777da1a14ce.asset
+Assets/TerrainData_adbf95ee-9510-44e2-ab56-2de8439847b7.asset
+Assets/TerrainData_9f8ce7bb-f036-4988-a8a9-48b0ecb6cbb3.asset
+Assets/TerrainData_8d08bd3c-d5c1-49f6-a83f-e642f81f0d2d.asset
+Assets/TerrainData_8c65cc76-92d2-4e01-b39e-0c2e15427313.asset
+Assets/TerrainData_890aac25-e8b9-4ad2-a715-e7ff8b0bbbf1.asset
+Assets/TerrainData_85a28d15-1460-4843-8bd2-9e3823a7635d.asset
+Assets/TerrainData_3b6491c5-8406-435f-96f1-37af553f4699.asset
+Assets/TerrainData_3a94a56e-9a06-43d1-b064-4e84742302d2.asset
+Assets/TerrainData_335e6ea6-7dfd-49af-a62a-39a54961430d.asset
+Assets/TerrainData_248f56c1-e4a9-49b4-b066-8bd7ead8219c.asset
+Assets/TerrainData_1e97e533-93df-4632-a21c-be11246ae009.asset
+Assets/TerrainData_123ab380-99af-420b-9d82-0087b9cb52da.asset
+Assets/New Terrain.asset
+Assets/TutorialInfo/Readme.cs.meta
+Assets/TutorialInfo/Readme.cs
+Assets/TutorialInfo/Editor/ReadmeEditor.cs.meta
+Assets/TutorialInfo/Editor/ReadmeEditor.cs
+Assets/Animations/Misc/X Bot@Running Slide.fbx
+Assets/Animations/Locomotion Pack/X Bot.fbx
+Assets/Animations/Locomotion Pack/walking.fbx
+Assets/Animations/Locomotion Pack/running.fbx
+Assets/Animations/Locomotion Pack/right turn.fbx
+Assets/Animations/Locomotion Pack/right turn 90.fbx
+Assets/Animations/Locomotion Pack/right strafe.fbx
+Assets/Animations/Locomotion Pack/right strafe walking.fbx
+Assets/Animations/Locomotion Pack/left turn.fbx
+Assets/Animations/Locomotion Pack/left turn 90.fbx
+Assets/Animations/Locomotion Pack/left strafe.fbx
+Assets/Animations/Locomotion Pack/left strafe walking.fbx
+Assets/Animations/Locomotion Pack/jump.fbx
+Assets/Animations/Locomotion Pack/idle.fbx
+Assets/Animations/Action Adventure Pack/X Bot.fbx
+Assets/Animations/Action Adventure Pack/walking.fbx
+Assets/Animations/Action Adventure Pack/stand to cover.fbx
+Assets/Animations/Action Adventure Pack/stand to cover (2).fbx
+Assets/Animations/Action Adventure Pack/running.fbx
+Assets/Animations/Action Adventure Pack/run to stop.fbx
+Assets/Animations/Action Adventure Pack/right turn.fbx
+Assets/Animations/Action Adventure Pack/right cover sneak.fbx
+Assets/Animations/Action Adventure Pack/left turn.fbx
+Assets/Animations/Action Adventure Pack/left cover sneak.fbx
+Assets/Animations/Action Adventure Pack/jumping up.fbx
+Assets/Animations/Action Adventure Pack/idle.fbx
+Assets/Animations/Action Adventure Pack/idle (5).fbx
+Assets/Animations/Action Adventure Pack/idle (4).fbx
+Assets/Animations/Action Adventure Pack/idle (3).fbx
+Assets/Animations/Action Adventure Pack/idle (2).fbx
+Assets/Animations/Action Adventure Pack/hard landing.fbx
+Assets/Animations/Action Adventure Pack/falling to roll.fbx
+Assets/Animations/Action Adventure Pack/falling idle.fbx
+Assets/Animations/Action Adventure Pack/crouched sneaking right.fbx
+Assets/Animations/Action Adventure Pack/crouched sneaking left.fbx
+Assets/Animations/Action Adventure Pack/cover to stand.fbx
+Assets/Animations/Action Adventure Pack/cover to stand (2).fbx
+Assets/_Recovery/0 (4).unity
