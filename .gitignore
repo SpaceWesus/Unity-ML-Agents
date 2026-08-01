@@ -76,6 +76,10 @@ crashlytics-build.properties
 /Assets/TerrainDemoScene_URP
 /Assets/UnityTechnologies/ParticlePack
 *.meta
+# First-party DungeonRaid scripts are scene-referenced production code; keep
+# their GUID metadata portable even while legacy imported asset metadata remains ignored.
+!Assets/Scripts/DungeonRaid/*.meta
+!Assets/Scripts/DungeonRaid/**/*.meta
 Assets/TutorialInfo/Readme.cs.meta
 Assets/TutorialInfo/Readme.cs
 Assets/TutorialInfo/Editor/ReadmeEditor.cs.meta

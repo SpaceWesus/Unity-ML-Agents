@@ -59,6 +59,15 @@ Turtle is a Unity experimentation project containing ML-Agents turtle/racecar wo
 - The Weapons Testing arena, spawn points, humanoid agents, and target dummies
   are serialized in the scene. Its editor builder runs only from explicit
   `Turtle > Combat` menu commands.
+- `Assets/Scenes/Demo Dungeon.unity` is the standalone six-hunter autonomous
+  raid combat fixture. Its actors, walls, chest, room graph, and system
+  references are serialized before Play Mode. Actors use dynamic `Rigidbody2D`
+  bodies and solid `CircleCollider2D` hurtboxes; walls use `BoxCollider2D`, and
+  damage is authorized by swept/overlap physics contacts rather than range
+  checks. The fixture exercises twelve role abilities and hunter/enemy tactical
+  directors. It is not a second persistence model: campaign integration must
+  materialize and commit the existing `GateInstanceState` and
+  `DungeonEncounterState`.
 - Ecosystem world state saves to
   `Application.persistentDataPath/2d-ecosystem-v5.json`; sibling v4, v3, v2, and
   v1 files are retained as read-only import sources and are never overwritten
