@@ -20,6 +20,18 @@ namespace Turtle.DungeonRaid
         public float Radius => radius;
         public Vector2 Position => transform.position;
 
+        public void Configure(
+            RaidSpawnMarkerKind markerKind,
+            string markerGroupId,
+            int markerCapacity,
+            float markerRadius)
+        {
+            kind = markerKind;
+            groupId = string.IsNullOrWhiteSpace(markerGroupId) ? "default" : markerGroupId;
+            capacity = Mathf.Max(1, markerCapacity);
+            radius = Mathf.Max(0.1f, markerRadius);
+        }
+
         private void OnDrawGizmos()
         {
             Gizmos.color = ResolveColor(kind);
@@ -43,10 +55,7 @@ namespace Turtle.DungeonRaid
             int markerCapacity,
             float markerRadius)
         {
-            kind = markerKind;
-            groupId = string.IsNullOrWhiteSpace(markerGroupId) ? "default" : markerGroupId;
-            capacity = Mathf.Max(1, markerCapacity);
-            radius = Mathf.Max(0.1f, markerRadius);
+            Configure(markerKind, markerGroupId, markerCapacity, markerRadius);
         }
 #endif
     }

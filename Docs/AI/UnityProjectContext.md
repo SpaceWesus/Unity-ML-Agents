@@ -68,6 +68,13 @@ Turtle is a Unity experimentation project containing ML-Agents turtle/racecar wo
   directors. It is not a second persistence model: campaign integration must
   materialize and commit the existing `GateInstanceState` and
   `DungeonEncounterState`.
+- Demo Dungeon now includes a serialized room-first preview generated from seed
+  `731245`. `DungeonRoomFirstPlanner2D` deterministically creates 8-12 rooms,
+  graph-diameter entrance/boss placement, branches, optional loops, semantic
+  side rooms, varied spatial templates, and bent corridors.
+  `DungeonRoomFirstGenerator2D` materializes floors, collidable walls, props,
+  sockets, and raid placement. The standalone demo rolls a new seed on Play for
+  rapid variety testing; campaign gates will provide their persisted map seed.
 - Ecosystem world state saves to
   `Application.persistentDataPath/2d-ecosystem-v5.json`; sibling v4, v3, v2, and
   v1 files are retained as read-only import sources and are never overwritten

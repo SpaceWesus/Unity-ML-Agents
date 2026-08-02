@@ -11,7 +11,11 @@ namespace Turtle.DungeonRaid.Editor
 {
     public static class DemoDungeonRaidBuilder
     {
+        // The editor tool saves a visible seeded preview. The demo intentionally
+        // rolls a new seed in Play Mode; production gates will supply their stored
+        // map seed to the same deterministic generator.
         public const string ScenePath = "Assets/Scenes/Demo Dungeon.unity";
+        private const int DefaultPreviewSeed = 731245;
         private const string RequestRelativePath =
             "Temp/CodexValidation/setup-demo-dungeon.request";
         private const string ResultRelativePath =
@@ -181,17 +185,23 @@ namespace Turtle.DungeonRaid.Editor
                     throw new InvalidOperationException(
                         "The authored spawn room must retain reusable Floor and Wall sprites.");
                 }
-                var expansion = ConfigureGreyboxExpansion(
+                ConfigureGreyboxExpansion(
                     dungeonTiles.transform,
                     mobRoom,
                     floorSprite,
                     wallSprite);
                 ConfigureWorldColliders(dungeonTiles.transform);
 
-                var authoredRooms = new List<RaidRoom2D> { spawnRoom, mobRoom };
-                authoredRooms.AddRange(expansion.Rooms);
-                var authoredConnections = new List<RaidRoomConnection2D> { connection };
-                authoredConnections.AddRange(expansion.Connections);
+                var authoredRooms = dungeonTiles
+                    .GetComponentsInChildren<RaidRoom2D>(true)
+                    .OrderBy(room => room.Sequence)
+                    .ThenBy(room => room.RoomId, StringComparer.Ordinal)
+                    .ToList();
+                var authoredConnections = dungeonTiles
+                    .GetComponentsInChildren<RaidRoomConnection2D>(true)
+                    .OrderBy(candidate => candidate.FromRoom?.Sequence ?? int.MaxValue)
+                    .ThenBy(candidate => candidate.ToRoom?.Sequence ?? int.MaxValue)
+                    .ToList();
 
                 var hunters = ConfigureHunters(hunterRoot.transform);
                 var monsters = ConfigureMonsters(squadObject.transform);
@@ -201,7 +211,11 @@ namespace Turtle.DungeonRaid.Editor
                 pod.ConfigureEditor("goblin-pod-01", "Goblin Patrol", 0, mobRoom, monsters, 9.5f);
                 MarkDirty(party, pod);
 
-                var chestObject = FindChild(mobRoomObject.transform, "Chest - Tier 1");
+                var chestObject = FindChild(mobRoomObject.transform, "Chest - Tier 1") ??
+                                  scene.GetRootGameObjects()
+                                      .SelectMany(root => root.GetComponentsInChildren<RaidChest2D>(true))
+                                      .Select(candidate => candidate.gameObject)
+                                      .FirstOrDefault();
                 if (chestObject == null)
                 {
                     throw new InvalidOperationException("The authored Tier 1 chest is missing from Room 2.");
@@ -256,7 +270,27 @@ namespace Turtle.DungeonRaid.Editor
                     fx,
                     raidCamera,
                     hud);
-                MarkDirty(director, hud, fx, raidCamera, camera);
+
+                var interactiveObjects = EnsureChild(dungeonTiles.transform, "Interactive Objects");
+                chestObject.transform.SetParent(interactiveObjects.transform, true);
+                var generator = GetOrAddSingle<DungeonRoomFirstGenerator2D>(dungeonTiles);
+                generator.ConfigureEditor(
+                    DefaultPreviewSeed,
+                    true,
+                    director,
+                    party,
+                    pod,
+                    chest,
+                    floorSprite,
+                    wallSprite);
+                generator.Generate(DefaultPreviewSeed);
+
+                spawnRoomObject.SetActive(false);
+                mobRoomObject.SetActive(false);
+                connectionObject.SetActive(false);
+                var legacyExpansion = FindChild(dungeonTiles.transform, "Greybox Room Kit");
+                if (legacyExpansion != null) legacyExpansion.SetActive(false);
+                MarkDirty(director, hud, fx, raidCamera, camera, generator, pod, chest);
 
                 EditorSceneManager.MarkSceneDirty(scene);
                 EditorSceneManager.SaveScene(scene);
@@ -304,27 +338,37 @@ namespace Turtle.DungeonRaid.Editor
                 var agents = roots.SelectMany(root =>
                     root.GetComponentsInChildren<RaidAgent2D>(true)).ToArray();
                 var markers = roots.SelectMany(root =>
-                    root.GetComponentsInChildren<RaidSpawnMarker2D>(true)).ToArray();
+                    root.GetComponentsInChildren<RaidSpawnMarker2D>()).ToArray();
                 var camera = FindRoot(scene, "Main Camera")?.GetComponent<Camera>();
+                var generator = roots.SelectMany(root =>
+                    root.GetComponentsInChildren<DungeonRoomFirstGenerator2D>(true)).FirstOrDefault();
+
+                rooms = roots.SelectMany(root =>
+                    root.GetComponentsInChildren<RaidRoom2D>()).ToArray();
+                connections = roots.SelectMany(root =>
+                    root.GetComponentsInChildren<RaidRoomConnection2D>()).ToArray();
 
                 Check(director != null, "Raid Systems must contain a DungeonRaidDirector2D.", failures);
+                Check(generator != null && generator.RandomizeSeedOnPlay,
+                    "Dungeon Tiles must own a room-first generator configured to roll a new demo seed on Play.",
+                    failures);
                 Check(party != null && party.Members.Count == 6,
                     "The raid party must reference all six authored hunters.", failures);
                 Check(pods.Length == 1 && pods[0].Members.Count == 6,
                     "Squad 1 must be a generic six-member enemy pod.", failures);
-                Check(rooms.Length == 5,
-                    "The greybox route must contain entrance, two encounters, an antechamber, and a boss room.",
+                Check(rooms.Length >= 8,
+                    "The generated greybox must contain at least eight active rooms.",
                     failures);
                 Check(rooms.Count(room => room.Purpose == RaidRoomPurpose.Entrance) == 1 &&
-                      rooms.Count(room => room.Purpose == RaidRoomPurpose.Encounter) == 2 &&
-                      rooms.Count(room => room.Purpose == RaidRoomPurpose.Transition) == 1 &&
-                      rooms.Count(room => room.Purpose == RaidRoomPurpose.Boss) == 1,
+                      rooms.Count(room => room.Purpose == RaidRoomPurpose.Encounter) >= 2 &&
+                      rooms.Count(room => room.Purpose == RaidRoomPurpose.Transition) >= 1 &&
+                      rooms.Count(room => room.Purpose == RaidRoomPurpose.Boss) >= 1,
                     "The greybox route must expose the expected semantic room purposes.", failures);
-                Check(connections.Length == 4 && connections.All(candidate =>
+                Check(connections.Length >= rooms.Length - 1 && connections.All(candidate =>
                         candidate.FromRoom != null && candidate.ToRoom != null),
-                    "The five-room critical path must be represented by four room connections.", failures);
-                Check(connections.Count(candidate => candidate.Length >= 5f) == 3,
-                    "Three visible corridor connections must separate the later rooms.", failures);
+                    "The generated room graph must be connected by valid room connections.", failures);
+                Check(connections.All(candidate => candidate.WaypointCount >= 2),
+                    "Every generated corridor must expose a multi-point traversal route.", failures);
                 Check(markers.Count(marker => marker.Kind == RaidSpawnMarkerKind.Party) >= 1 &&
                       markers.Count(marker => marker.Kind == RaidSpawnMarkerKind.EnemyPod) >= 2 &&
                       markers.Count(marker => marker.Kind == RaidSpawnMarkerKind.Boss) == 1 &&
@@ -345,7 +389,7 @@ namespace Turtle.DungeonRaid.Editor
                     "Every raid agent must use a zero-gravity dynamic Rigidbody2D and a solid CircleCollider2D hurtbox.",
                     failures);
                 var authoredWalls = roots.SelectMany(root =>
-                        root.GetComponentsInChildren<SpriteRenderer>(true))
+                        root.GetComponentsInChildren<SpriteRenderer>())
                     .Where(renderer => IsWall(renderer.name))
                     .ToArray();
                 Check(authoredWalls.Length > 0 && authoredWalls.All(wall =>
@@ -384,6 +428,21 @@ namespace Turtle.DungeonRaid.Editor
                     failures);
                 Check(camera != null && camera.orthographic,
                     "Demo Dungeon must use an orthographic top-down camera.", failures);
+
+                var deterministicA = DungeonRoomFirstPlanner2D.Create(42817);
+                var deterministicB = DungeonRoomFirstPlanner2D.Create(42817);
+                Check(deterministicA.StructuralSignature() == deterministicB.StructuralSignature(),
+                    "A stored dungeon seed must reproduce the same room graph and templates.", failures);
+                var signatures = new HashSet<string>(StringComparer.Ordinal);
+                for (var seed = 8100; seed < 8112; seed++)
+                {
+                    var plan = DungeonRoomFirstPlanner2D.Create(seed);
+                    Check(DungeonRoomFirstPlanner2D.Validate(plan, out _),
+                        $"Generated validation sample seed {seed} must be connected and valid.", failures);
+                    signatures.Add(plan.StructuralSignature());
+                }
+                Check(signatures.Count >= 10,
+                    "Sampled seeds must produce meaningfully varied room graphs and templates.", failures);
             }
             finally
             {

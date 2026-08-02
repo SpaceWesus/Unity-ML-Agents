@@ -43,6 +43,12 @@ namespace Turtle.DungeonRaid
         private readonly List<RaidAgent2D> contactTargets = new(32);
         private readonly List<PersistentRaidField> persistentFields = new(8);
 
+        private RaidEnemyPodBrain2D routedPod;
+        private RaidRoomConnection2D activeRouteConnection;
+        private RaidRoom2D activeRouteFrom;
+        private RaidRoom2D activeRouteTo;
+        private int activeRouteWaypoint;
+
         private float decisionAccumulator;
         private float startCountdown;
         private float raidTime;
@@ -115,6 +121,7 @@ namespace Turtle.DungeonRaid
             decisionAccumulator = 0f;
             startCountdown = automaticStartDelay;
             running = false;
+            ClearActiveRoute();
             resultMessage = string.Empty;
             latestEvent = "Strike team assembling at the entrance.";
             for (var index = 0; index < hunters.Count; index++)
@@ -227,11 +234,47 @@ namespace Turtle.DungeonRaid
             RaidEnemyPodBrain2D pod)
         {
             if (pod?.Room == null) return pod?.ActivationCenter ?? partyPosition;
-            var currentRoom = FindRoom(partyPosition);
-            if (currentRoom == null || currentRoom == pod.Room)
+            if (routedPod != pod)
             {
+                ClearActiveRoute();
+                routedPod = pod;
+            }
+
+            var currentRoom = FindRoom(partyPosition);
+            if (currentRoom == pod.Room)
+            {
+                ClearActiveRoute();
+                routedPod = pod;
                 return pod.ActivationCenter;
             }
+
+            if (activeRouteConnection != null)
+            {
+                if (currentRoom == activeRouteTo)
+                {
+                    activeRouteConnection = null;
+                    activeRouteFrom = null;
+                    activeRouteTo = null;
+                    activeRouteWaypoint = 0;
+                }
+                else
+                {
+                    var forward = activeRouteConnection.FromRoom == activeRouteFrom;
+                    while (activeRouteWaypoint < activeRouteConnection.WaypointCount)
+                    {
+                        var point = activeRouteConnection.GetWaypoint(activeRouteWaypoint, forward);
+                        if (Vector2.Distance(partyPosition, point) >
+                            Mathf.Max(0.8f, activeRouteConnection.Width * 0.28f))
+                        {
+                            return point;
+                        }
+                        activeRouteWaypoint++;
+                    }
+                    return activeRouteTo != null ? activeRouteTo.Center : pod.ActivationCenter;
+                }
+            }
+
+            if (currentRoom == null) return pod.ActivationCenter;
             var nextRoom = FindNextRoomOnPath(currentRoom, pod.Room);
             if (nextRoom == null) return pod.ActivationCenter;
             for (var index = 0; index < connections.Length; index++)
@@ -239,12 +282,33 @@ namespace Turtle.DungeonRaid
                 var connection = connections[index];
                 if (connection == null ||
                     !connection.Connects(currentRoom, nextRoom)) continue;
-                return Vector2.Distance(partyPosition, connection.Position) >
-                       connection.Width * 0.3f
-                    ? connection.Position
-                    : nextRoom.Center;
+                activeRouteConnection = connection;
+                activeRouteFrom = currentRoom;
+                activeRouteTo = nextRoom;
+                activeRouteWaypoint = 0;
+                var forward = connection.FromRoom == currentRoom;
+                return connection.GetWaypoint(0, forward);
             }
             return pod.ActivationCenter;
+        }
+
+        public void ConfigureGeneratedLayout(
+            RaidRoom2D[] generatedRooms,
+            RaidRoomConnection2D[] generatedConnections)
+        {
+            rooms = generatedRooms ?? Array.Empty<RaidRoom2D>();
+            connections = generatedConnections ?? Array.Empty<RaidRoomConnection2D>();
+            ClearActiveRoute();
+            RebuildAgentCache();
+        }
+
+        private void ClearActiveRoute()
+        {
+            routedPod = null;
+            activeRouteConnection = null;
+            activeRouteFrom = null;
+            activeRouteTo = null;
+            activeRouteWaypoint = 0;
         }
 
         public RaidRoom2D FindRoom(Vector2 position)

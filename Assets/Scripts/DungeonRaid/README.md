@@ -17,6 +17,19 @@ The setup recognizes the current hunter labels. `Tanker` is intentionally mapped
 to the internal `Tank` combat role. The current authored Squad 1 contains six
 goblins: one sergeant, two bowmen, and three swordsmen.
 
+The saved scene contains a fully materialized room-first preview, so the dungeon
+is visible and editable before Play Mode. The demo deliberately rolls a new seed
+when Play begins. A campaign gate should instead call
+`GenerateFromStoredGateSeed(gate.mapSeed)` so saving and reloading reproduces the
+same layout.
+
+The generator creates 8-12 rooms on a connected cardinal graph, selects distant
+entrance and boss endpoints, builds a critical path, adds optional branches and
+loops, and routes bent corridors between room doorways. Branches become reward,
+resource, or event rooms. Eleven spatial templates provide open arenas, pillars,
+split halls, crossroads, ring cover, ambush cover, caches, resource pockets,
+antechambers, and boss variants.
+
 ## Runtime ownership
 
 - `DungeonRaidDirector2D` owns the encounter clock, agent registry, ability
@@ -28,7 +41,17 @@ goblins: one sergeant, two bowmen, and three swordsmen.
 - `RaidAgent2D` owns one combatant's stats, resources, cooldowns, movement, life
   state, and presentation.
 - `RaidRoom2D` describes a room. `RaidRoomConnection2D` owns adjacency, so neither
-  room owns the shared doorway.
+  room owns the shared doorway. Connections also expose ordered corridor
+  waypoints so parties follow bends rather than cutting through walls.
+- `DungeonRoomFirstPlanner2D` is a pure deterministic layout planner. It can be
+  tested without loading a scene and is suitable for both rendered and abstract
+  dungeon representations.
+- `DungeonRoomFirstGenerator2D` materializes the plan into floor, wall,
+  collider, obstacle, and spawn-marker objects, then binds the raid fixture to
+  the generated entrance and a deep encounter room.
+- `RaidRoom2D.Purpose` separates semantic room use from theme presentation.
+  `RaidSpawnMarker2D` exposes party, enemy, boss, chest, and exit sockets for a
+  future generated-gate materializer without owning encounter state.
 - `RaidChest2D` stores only open/closed state. Loot ownership belongs to the
   recipient's inventory when a real inventory system is connected.
 - `RaidFxPool2D`, `RaidCamera2D`, and `RaidHud2D` provide pooled combat feedback,
@@ -39,6 +62,10 @@ goblins: one sergeant, two bowmen, and three swordsmen.
 - Every combatant is a zero-gravity dynamic `Rigidbody2D` with a solid
   `CircleCollider2D`. Authored walls use solid `BoxCollider2D` components and
   chests expose trigger colliders.
+- Shared movement uses allocation-free `Rigidbody2D.Cast` probes and stable
+  left/right steering preferences to flow around solid room cover. This keeps
+  generated template obstacles physical without teaching a hunter-specific AI
+  about each layout.
 - AI chooses an intended action and aim. `RaidCombatPhysics2D` decides whether
   the action actually contacts an opposing hurtbox. Range checks are useful for
   decision-making but never grant damage by themselves.
@@ -61,10 +88,13 @@ The brains work with any member count. Add new behavior by extending
 abilities from effect, range, resource cost, cooldown, and battlefield need; it
 does not branch on character names.
 
-Additional rooms should receive a `RaidRoom2D`, an increasing objective order,
-and separate connection objects between adjacent rooms. A pod can lock a chest;
-once that pod is defeated, the party can open the chest and continue to the next
-objective.
+Add reusable spatial recipes by extending `DungeonRoomTemplate2D` and
+`PopulateTemplate`. Add semantic rules to the planner separately; this keeps
+geometry choices independent from encounter or reward behavior. A pod can lock
+a chest; once that pod is defeated, the party can open the chest and continue.
+
+See `Docs/Dungeon-Room-First-Guide.md` for the current layouts, recommended next
+room archetypes, BSP constraints, and theme/art-direction hooks.
 
 ## Persistence boundary
 

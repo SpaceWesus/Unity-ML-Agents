@@ -23,6 +23,18 @@ namespace Turtle.DungeonRaid
 
         public bool Contains(Vector2 point) => Bounds.Contains(point);
 
+        public void Configure(
+            string id,
+            int order,
+            Vector2 roomSize,
+            RaidRoomPurpose roomPurpose = RaidRoomPurpose.Encounter)
+        {
+            roomId = string.IsNullOrWhiteSpace(id) ? "room" : id;
+            sequence = Mathf.Max(0, order);
+            purpose = roomPurpose;
+            size = new Vector2(Mathf.Max(0.1f, roomSize.x), Mathf.Max(0.1f, roomSize.y));
+        }
+
         private void OnDrawGizmosSelected()
         {
             Gizmos.color = new Color(0.15f, 0.85f, 1f, 0.65f);
@@ -36,10 +48,7 @@ namespace Turtle.DungeonRaid
             Vector2 roomSize,
             RaidRoomPurpose roomPurpose = RaidRoomPurpose.Encounter)
         {
-            roomId = id;
-            sequence = Mathf.Max(0, order);
-            purpose = roomPurpose;
-            size = new Vector2(Mathf.Max(0.1f, roomSize.x), Mathf.Max(0.1f, roomSize.y));
+            Configure(id, order, roomSize, roomPurpose);
         }
 #endif
     }

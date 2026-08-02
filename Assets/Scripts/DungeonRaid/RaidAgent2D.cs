@@ -73,6 +73,8 @@ namespace Turtle.DungeonRaid
         private SpriteRenderer healthFill;
         private SpriteRenderer manaFill;
         private SpriteRenderer shieldRenderer;
+        private readonly RaycastHit2D[] movementCastHits = new RaycastHit2D[12];
+        private float avoidanceHandedness = 1f;
 
         public string AgentId => agentId;
         public string DisplayName => displayName;
@@ -113,6 +115,7 @@ namespace Turtle.DungeonRaid
             EnsurePresentation();
             spawnPosition = transform.position;
             baseLocalScale = transform.localScale;
+            avoidanceHandedness = StableAvoidanceHandedness(agentId);
             ResetForRaid();
         }
 
@@ -172,6 +175,16 @@ namespace Turtle.DungeonRaid
         {
             spawnPosition = transform.position;
             baseLocalScale = transform.localScale;
+        }
+
+        public void PlaceAt(Vector2 position, bool captureAsSpawn = true)
+        {
+            EnsurePhysics();
+            physicsBody.position = position;
+            physicsBody.linearVelocity = Vector2.zero;
+            physicsBody.angularVelocity = 0f;
+            transform.position = new Vector3(position.x, position.y, transform.position.z);
+            if (captureAsSpawn) CaptureSpawnPosition();
         }
 
         public void Step(float deltaTime, float raidTime, DungeonRaidDirector2D raid)
@@ -478,9 +491,57 @@ namespace Turtle.DungeonRaid
             var step = Mathf.Min(distance - destinationStopRadius, moveSpeed * Mathf.Max(0f, deltaTime));
             if (step <= 0f) return;
             var direction = offset / Mathf.Max(0.0001f, distance);
+            direction = ResolveMovementDirection(direction, step + CollisionRadius * 0.25f);
+            if (direction.sqrMagnitude <= 0.001f) return;
             var next = current + direction * step;
             physicsBody.MovePosition(next);
             faceTarget(next + direction);
+        }
+
+        private Vector2 ResolveMovementDirection(Vector2 desired, float castDistance)
+        {
+            if (!IsMovementBlocked(desired, castDistance)) return desired;
+            var perpendicular = new Vector2(-desired.y, desired.x) * avoidanceHandedness;
+            var firstArc = (desired * 0.45f + perpendicular).normalized;
+            var secondArc = (desired * 0.45f - perpendicular).normalized;
+            if (!IsMovementBlocked(firstArc, castDistance)) return firstArc;
+            if (!IsMovementBlocked(secondArc, castDistance)) return secondArc;
+            if (!IsMovementBlocked(perpendicular, castDistance)) return perpendicular;
+            if (!IsMovementBlocked(-perpendicular, castDistance)) return -perpendicular;
+            return Vector2.zero;
+        }
+
+        private bool IsMovementBlocked(Vector2 direction, float castDistance)
+        {
+            if (physicsBody == null || direction.sqrMagnitude <= 0.001f) return false;
+            var filter = new ContactFilter2D
+            {
+                useTriggers = false,
+                useLayerMask = false
+            };
+            var hitCount = physicsBody.Cast(direction, filter, movementCastHits,
+                Mathf.Max(0.02f, castDistance));
+            for (var index = 0; index < hitCount; index++)
+            {
+                var collider = movementCastHits[index].collider;
+                if (collider == null) continue;
+                if (collider.GetComponentInParent<RaidAgent2D>() != null) continue;
+                return true;
+            }
+            return false;
+        }
+
+        private static float StableAvoidanceHandedness(string value)
+        {
+            var hash = 17;
+            if (!string.IsNullOrEmpty(value))
+            {
+                for (var index = 0; index < value.Length; index++)
+                {
+                    hash = unchecked(hash * 31 + value[index]);
+                }
+            }
+            return (hash & 1) == 0 ? 1f : -1f;
         }
 
         private void StepStatuses(float raidTime, DungeonRaidDirector2D raid)
@@ -692,6 +753,7 @@ namespace Turtle.DungeonRaid
             rangedBasicAttack = ranged;
             identityColor = color;
             abilities = assignedAbilities ?? new List<RaidAbilitySpec>();
+            avoidanceHandedness = StableAvoidanceHandedness(agentId);
             bodyRenderer = GetComponent<SpriteRenderer>();
             physicsBody = GetComponent<Rigidbody2D>();
             hurtbox = GetComponent<CircleCollider2D>();

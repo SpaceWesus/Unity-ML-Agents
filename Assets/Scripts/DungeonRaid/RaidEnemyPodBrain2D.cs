@@ -31,6 +31,13 @@ namespace Turtle.DungeonRaid
         public float AggroRadius => aggroRadius;
         public Vector2 ActivationCenter => room != null ? room.Center : MemberCentroid();
 
+        public void BindGeneratedRoom(RaidRoom2D assignedRoom, float activationRadius = 9.5f)
+        {
+            room = assignedRoom;
+            aggroRadius = Mathf.Max(1f, activationRadius);
+            ResetPod();
+        }
+
         public void ResetPod()
         {
             phase = RaidPodPhase.Dormant;

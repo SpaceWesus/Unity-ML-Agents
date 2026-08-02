@@ -75,6 +75,26 @@ namespace Turtle.DungeonRaid
         ExitPortal
     }
 
+    /// <summary>
+    /// Geometry recipe selected independently from room purpose. Keeping these
+    /// separate lets a reward room, encounter, or event reuse the same spatial
+    /// language without coupling gameplay rules to decoration.
+    /// </summary>
+    public enum DungeonRoomTemplate2D
+    {
+        OpenArena,
+        PillarHall,
+        SplitHall,
+        Crossroads,
+        Ring,
+        AmbushCover,
+        RewardCache,
+        ResourcePocket,
+        BossAntechamber,
+        BossPillars,
+        BossOpen
+    }
+
     public enum RaidAbilityEffect
     {
         Damage,

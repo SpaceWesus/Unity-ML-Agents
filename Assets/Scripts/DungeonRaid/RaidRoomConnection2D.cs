@@ -11,12 +11,43 @@ namespace Turtle.DungeonRaid
         [SerializeField] private RaidRoom2D toRoom;
         [SerializeField, Min(0.1f)] private float width = 4f;
         [SerializeField, Min(0f)] private float length;
+        [SerializeField] private List<Vector2> waypoints = new();
 
         public RaidRoom2D FromRoom => fromRoom;
         public RaidRoom2D ToRoom => toRoom;
         public float Width => width;
         public float Length => length;
         public Vector2 Position => transform.position;
+        public int WaypointCount => waypoints.Count;
+
+        public Vector2 GetWaypoint(int index, bool fromTo = true)
+        {
+            if (waypoints.Count == 0) return Position;
+            var clamped = Mathf.Clamp(index, 0, waypoints.Count - 1);
+            return fromTo ? waypoints[clamped] : waypoints[waypoints.Count - 1 - clamped];
+        }
+
+        public void Configure(
+            RaidRoom2D from,
+            RaidRoom2D to,
+            float connectionWidth,
+            float corridorLength,
+            IReadOnlyList<Vector2> routeWaypoints = null)
+        {
+            fromRoom = from;
+            toRoom = to;
+            width = Mathf.Max(0.1f, connectionWidth);
+            length = Mathf.Max(0f, corridorLength);
+            waypoints.Clear();
+            if (routeWaypoints != null)
+            {
+                for (var index = 0; index < routeWaypoints.Count; index++)
+                {
+                    waypoints.Add(routeWaypoints[index]);
+                }
+            }
+            if (waypoints.Count == 0) waypoints.Add(Position);
+        }
 
         public bool Connects(RaidRoom2D first, RaidRoom2D second)
         {
@@ -42,10 +73,7 @@ namespace Turtle.DungeonRaid
             float connectionWidth,
             float corridorLength = 0f)
         {
-            fromRoom = from;
-            toRoom = to;
-            width = Mathf.Max(0.1f, connectionWidth);
-            length = Mathf.Max(0f, corridorLength);
+            Configure(from, to, connectionWidth, corridorLength);
         }
 #endif
     }
