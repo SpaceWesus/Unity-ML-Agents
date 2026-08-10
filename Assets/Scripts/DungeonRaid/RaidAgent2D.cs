@@ -35,6 +35,15 @@ namespace Turtle.DungeonRaid
         [SerializeField] private Color identityColor = Color.white;
         [SerializeField] private Rigidbody2D physicsBody;
         [SerializeField] private CircleCollider2D hurtbox;
+        [SerializeField] private bool compactPresentation;
+        [SerializeField] private bool useLightweightPhysics;
+        [SerializeField] private bool useTriggerHurtbox;
+        [SerializeField] private bool usesDownedState = true;
+
+        [Header("Navigation")]
+        [SerializeField] private DungeonNavigationGrid2D navigation;
+        [SerializeField, Min(0.1f)] private float navigationRepathInterval = 0.35f;
+        [SerializeField, Min(0.1f)] private float navigationDestinationTolerance = 1f;
 
         private readonly Dictionary<string, float> abilityReadyAt = new(StringComparer.Ordinal);
         private Vector2 spawnPosition;
@@ -67,7 +76,6 @@ namespace Turtle.DungeonRaid
         private float nextDamageOverTimeTick;
         private float currentRaidTime;
         private RaidLifeState lifeState;
-        private SpriteRenderer ringRenderer;
         private SpriteRenderer shadowRenderer;
         private SpriteRenderer healthBackground;
         private SpriteRenderer healthFill;
@@ -75,6 +83,10 @@ namespace Turtle.DungeonRaid
         private SpriteRenderer shieldRenderer;
         private readonly RaycastHit2D[] movementCastHits = new RaycastHit2D[12];
         private float avoidanceHandedness = 1f;
+        private readonly List<Vector2> navigationPath = new(64);
+        private int navigationPathIndex;
+        private Vector2 plannedNavigationDestination;
+        private float nextNavigationRepathAt;
 
         public string AgentId => agentId;
         public string DisplayName => displayName;
@@ -85,6 +97,8 @@ namespace Turtle.DungeonRaid
         public float MaximumHealth => maximumHealth;
         public float CurrentMana => currentMana;
         public float CurrentShield => currentShield;
+        public bool HasTemporaryShield => currentShield > 0f && currentRaidTime < shieldExpiresAt;
+        public bool IsShieldVisualVisible => shieldRenderer != null && shieldRenderer.enabled;
         public float HealthRatio => maximumHealth <= 0f ? 0f : currentHealth / maximumHealth;
         public float MaximumMana => maximumMana;
         public float MoveSpeed => moveSpeed;
@@ -96,11 +110,14 @@ namespace Turtle.DungeonRaid
         public float PreferredCombatRange => preferredCombatRange;
         public bool RangedBasicAttack => rangedBasicAttack;
         public IReadOnlyList<RaidAbilitySpec> Abilities => abilities;
-        public bool CanReceiveDamage => lifeState == RaidLifeState.Active && currentHealth > 0f;
-        public bool CanAct => lifeState == RaidLifeState.Active && currentHealth > 0f &&
+        public bool CanReceiveDamage => isActiveAndEnabled &&
+                                        lifeState == RaidLifeState.Active && currentHealth > 0f;
+        public bool CanAct => isActiveAndEnabled &&
+                              lifeState == RaidLifeState.Active && currentHealth > 0f &&
                               currentRaidTime >= stunnedUntil;
         public bool CanBeRescued => lifeState == RaidLifeState.Downed;
         public Vector2 Position => physicsBody != null ? physicsBody.position : transform.position;
+        public DungeonNavigationGrid2D Navigation => navigation;
 
         public event Action<RaidAgent2D, RaidAgent2D, float> Damaged;
         public event Action<RaidAgent2D, RaidLifeState> LifeStateChanged;
@@ -167,6 +184,7 @@ namespace Turtle.DungeonRaid
             abilityReadyAt.Clear();
             lifeState = RaidLifeState.Active;
             hasDestination = false;
+            InvalidateNavigationPath();
             if (hurtbox != null) hurtbox.enabled = true;
             UpdatePresentation(0f);
         }
@@ -204,6 +222,7 @@ namespace Turtle.DungeonRaid
             else
             {
                 hasDestination = false;
+                InvalidateNavigationPath();
             }
             StepStatuses(raidTime, raid);
             UpdatePresentation(raidTime);
@@ -212,21 +231,52 @@ namespace Turtle.DungeonRaid
         public void MoveToward(Vector2 destination, float stopRadius = 0.1f)
         {
             if (!CanAct) return;
+            var destinationChanged = !hasDestination ||
+                                     Vector2.SqrMagnitude(desiredDestination - destination) >
+                                     navigationDestinationTolerance * navigationDestinationTolerance;
             desiredDestination = destination;
             destinationStopRadius = Mathf.Max(0f, stopRadius);
             hasDestination = true;
+            if (destinationChanged) nextNavigationRepathAt = 0f;
         }
 
         public void StopMoving()
         {
             hasDestination = false;
+            InvalidateNavigationPath();
+        }
+
+        public void BindNavigation(DungeonNavigationGrid2D assignedNavigation)
+        {
+            if (navigation == assignedNavigation) return;
+            navigation = assignedNavigation;
+            InvalidateNavigationPath();
+        }
+
+        public void IgnoreFriendlyCollisionWith(RaidAgent2D other)
+        {
+            if (other == null || other == this || other.faction != faction) return;
+            EnsurePhysics();
+            other.EnsurePhysics();
+            if (hurtbox != null && other.hurtbox != null)
+            {
+                Physics2D.IgnoreCollision(hurtbox, other.hurtbox, true);
+            }
         }
 
         public void Nudge(Vector2 displacement)
         {
             if (!CanAct || displacement.sqrMagnitude <= 0.000001f) return;
             hasDestination = false;
-            physicsBody.AddForce(displacement * 10f, ForceMode2D.Impulse);
+            InvalidateNavigationPath();
+            if (physicsBody.bodyType == RigidbodyType2D.Dynamic)
+            {
+                physicsBody.AddForce(displacement * 10f, ForceMode2D.Impulse);
+            }
+            else
+            {
+                physicsBody.position += displacement;
+            }
         }
 
         public void TeleportNear(Vector2 destination, Vector2 awayFromTarget)
@@ -238,6 +288,7 @@ namespace Turtle.DungeonRaid
             var next = destination + direction * Mathf.Max(0.8f, CollisionRadius * 2f);
             physicsBody.position = next;
             hasDestination = false;
+            InvalidateNavigationPath();
         }
 
         public bool CanBasicAttack(RaidAgent2D target, float raidTime)
@@ -268,7 +319,8 @@ namespace Turtle.DungeonRaid
             {
                 raid?.Effects?.EmitArc(Position, target.Position, attackColor, 1.25f, 0.2f);
             }
-            return raid != null && raid.ResolveBasicAttack(this, target, basicAttackDamage);
+            return raid != null &&
+                   raid.ResolveBasicAttack(this, target, basicAttackDamage, raidTime);
         }
 
         public bool IsAbilityReady(RaidAbilitySpec ability, float raidTime)
@@ -279,6 +331,88 @@ namespace Turtle.DungeonRaid
             }
             return !abilityReadyAt.TryGetValue(ability.id ?? string.Empty, out var readyAt) ||
                    raidTime >= readyAt;
+        }
+
+        public float GetAbilityCooldownRemaining(RaidAbilitySpec ability, float raidTime)
+        {
+            if (ability == null ||
+                !abilityReadyAt.TryGetValue(ability.id ?? string.Empty, out var readyAt))
+            {
+                return 0f;
+            }
+            return Mathf.Max(0f, readyAt - raidTime);
+        }
+
+        public RaidAbilityAvailability GetAbilityAvailability(
+            RaidAbilitySpec ability,
+            float raidTime)
+        {
+            if (!CanAct || ability == null) return RaidAbilityAvailability.Incapacitated;
+            if (GetAbilityCooldownRemaining(ability, raidTime) > 0f)
+            {
+                return RaidAbilityAvailability.Cooldown;
+            }
+            return currentMana + 0.001f >= ability.manaCost
+                ? RaidAbilityAvailability.Ready
+                : RaidAbilityAvailability.InsufficientMana;
+        }
+
+        public void CollectActiveStatusEffects(
+            float raidTime,
+            List<RaidStatusEffectSnapshot> results)
+        {
+            if (results == null) return;
+            results.Clear();
+            if (lifeState == RaidLifeState.Dead) return;
+            if (lifeState == RaidLifeState.Downed)
+            {
+                results.Add(new RaidStatusEffectSnapshot(
+                    RaidStatusEffectKind.Downed,
+                    downedUntil - raidTime));
+            }
+            if (currentShield > 0f && raidTime < shieldExpiresAt)
+            {
+                results.Add(new RaidStatusEffectSnapshot(
+                    RaidStatusEffectKind.TemporaryShield,
+                    shieldExpiresAt - raidTime));
+            }
+            if (forcedTarget != null && forcedTarget.CanReceiveDamage && raidTime < forcedTargetUntil)
+            {
+                results.Add(new RaidStatusEffectSnapshot(
+                    RaidStatusEffectKind.Taunted,
+                    forcedTargetUntil - raidTime));
+            }
+            if (raidTime < stunnedUntil)
+            {
+                results.Add(new RaidStatusEffectSnapshot(
+                    RaidStatusEffectKind.Stunned,
+                    stunnedUntil - raidTime));
+            }
+            if (damageBuffMultiplier > 1.0001f && raidTime < damageBuffExpiresAt)
+            {
+                results.Add(new RaidStatusEffectSnapshot(
+                    RaidStatusEffectKind.DamageUp,
+                    damageBuffExpiresAt - raidTime));
+            }
+            if (empoweredTarget != null && empoweredTarget.CanReceiveDamage &&
+                raidTime < empoweredTargetExpiresAt)
+            {
+                results.Add(new RaidStatusEffectSnapshot(
+                    RaidStatusEffectKind.Empowered,
+                    empoweredTargetExpiresAt - raidTime));
+            }
+            if (vulnerabilityMultiplier > 1.0001f && raidTime < vulnerabilityExpiresAt)
+            {
+                results.Add(new RaidStatusEffectSnapshot(
+                    RaidStatusEffectKind.Vulnerable,
+                    vulnerabilityExpiresAt - raidTime));
+            }
+            if (damageOverTimeSource != null && raidTime < damageOverTimeExpiresAt)
+            {
+                results.Add(new RaidStatusEffectSnapshot(
+                    RaidStatusEffectKind.Burning,
+                    damageOverTimeExpiresAt - raidTime));
+            }
         }
 
         public void CommitAbility(RaidAbilitySpec ability, float raidTime)
@@ -416,7 +550,7 @@ namespace Turtle.DungeonRaid
             Damaged?.Invoke(this, source, applied);
             if (currentHealth <= 0f)
             {
-                if (faction == RaidFaction.Hunters)
+                if (faction == RaidFaction.Hunters && usesDownedState)
                 {
                     downedUntil = raidTime + downedSeconds;
                     SetLifeState(RaidLifeState.Downed);
@@ -453,16 +587,31 @@ namespace Turtle.DungeonRaid
             return restored;
         }
 
-        public void GrantShield(
+        public bool GrantTemporaryShield(
+            RaidAgent2D provider,
             float amount,
             float raidTime,
             DungeonRaidDirector2D raid,
             float duration = 12f)
         {
-            if (!CanAct || amount <= 0f) return;
+            // Temporary HP is a Tanker ability, never an innate hunter stat.
+            // Keeping the authority check here prevents another ability or future
+            // AI path from silently handing shields to arbitrary characters.
+            if (!CanAct || amount <= 0f || provider == null || !provider.CanAct ||
+                provider.Faction != faction || provider.Faction != RaidFaction.Hunters ||
+                provider.Role != RaidCombatRole.Tank)
+            {
+                return false;
+            }
             currentShield = Mathf.Max(currentShield, amount);
             shieldExpiresAt = Mathf.Max(shieldExpiresAt, raidTime + Mathf.Max(0.1f, duration));
-            raid?.Effects?.EmitBurst(Position, new Color(0.75f, 0.9f, 1f), 1.5f, 0.4f);
+            var shieldColor = new Color(1f, 0.96f, 0.78f);
+            raid?.Effects?.EmitBurst(Position, shieldColor, 1.5f, 0.4f);
+            raid?.Effects?.EmitText(
+                Position + Vector2.up * 0.9f,
+                $"TEMP SHIELD +{Mathf.RoundToInt(currentShield)}",
+                shieldColor);
+            return true;
         }
 
         public void MarkAbilityCast(RaidAbilitySpec ability, RaidAgent2D target, DungeonRaidDirector2D raid)
@@ -481,14 +630,41 @@ namespace Turtle.DungeonRaid
         {
             if (!hasDestination) return;
             var current = Position;
-            var offset = desiredDestination - current;
-            var distance = offset.magnitude;
-            if (distance <= destinationStopRadius)
+            var finalOffset = desiredDestination - current;
+            var finalDistance = finalOffset.magnitude;
+            if (finalDistance <= destinationStopRadius)
             {
                 hasDestination = false;
+                InvalidateNavigationPath();
                 return;
             }
-            var step = Mathf.Min(distance - destinationStopRadius, moveSpeed * Mathf.Max(0f, deltaTime));
+
+            var steeringDestination = desiredDestination;
+            var navigationAvailable = navigation != null && navigation.IsReady;
+            var hasNavigationWaypoint = false;
+            if (navigationAvailable)
+            {
+                EnsureNavigationPath(current);
+                var waypointTolerance = Mathf.Max(0.22f, CollisionRadius * 0.55f);
+                while (navigationPathIndex < navigationPath.Count &&
+                       Vector2.Distance(current, navigationPath[navigationPathIndex]) <= waypointTolerance)
+                {
+                    navigationPathIndex++;
+                }
+                if (navigationPathIndex < navigationPath.Count)
+                {
+                    steeringDestination = navigationPath[navigationPathIndex];
+                    hasNavigationWaypoint = true;
+                }
+            }
+
+            var offset = steeringDestination - current;
+            var distance = offset.magnitude;
+            if (distance <= 0.0001f) return;
+            var remainingDistance = hasNavigationWaypoint
+                ? distance
+                : Mathf.Max(0f, finalDistance - destinationStopRadius);
+            var step = Mathf.Min(remainingDistance, moveSpeed * Mathf.Max(0f, deltaTime));
             if (step <= 0f) return;
             var direction = offset / Mathf.Max(0.0001f, distance);
             direction = ResolveMovementDirection(direction, step + CollisionRadius * 0.25f);
@@ -496,6 +672,33 @@ namespace Turtle.DungeonRaid
             var next = current + direction * step;
             physicsBody.MovePosition(next);
             faceTarget(next + direction);
+        }
+
+        private void EnsureNavigationPath(Vector2 current)
+        {
+            if (navigation == null || !navigation.IsReady) return;
+            var destinationMoved = Vector2.SqrMagnitude(
+                desiredDestination - plannedNavigationDestination) >
+                navigationDestinationTolerance * navigationDestinationTolerance;
+            var pathExhausted = navigationPathIndex >= navigationPath.Count;
+            if (!pathExhausted && (!destinationMoved || Time.time < nextNavigationRepathAt))
+            {
+                return;
+            }
+
+            navigationPath.Clear();
+            navigationPathIndex = 0;
+            navigation.TryFindPath(current, desiredDestination, navigationPath);
+            plannedNavigationDestination = desiredDestination;
+            nextNavigationRepathAt = Time.time + Mathf.Max(0.1f, navigationRepathInterval);
+        }
+
+        private void InvalidateNavigationPath()
+        {
+            navigationPath.Clear();
+            navigationPathIndex = 0;
+            plannedNavigationDestination = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
+            nextNavigationRepathAt = 0f;
         }
 
         private Vector2 ResolveMovementDirection(Vector2 desired, float castDistance)
@@ -523,9 +726,24 @@ namespace Turtle.DungeonRaid
                 Mathf.Max(0.02f, castDistance));
             for (var index = 0; index < hitCount; index++)
             {
-                var collider = movementCastHits[index].collider;
+                var hit = movementCastHits[index];
+                var collider = hit.collider;
                 if (collider == null) continue;
                 if (collider.GetComponentInParent<RaidAgent2D>() != null) continue;
+
+                // Rigidbody2D.Cast can report the wall we are already touching
+                // at distance zero even while the proposed movement is tangent
+                // to, or away from, that wall. Treating that contact as blocked
+                // made every avoidance candidate fail once an agent reached an
+                // obstacle face. Only reject a zero-distance contact when this
+                // direction would continue pressing into the surface.
+                const float contactTolerance = 0.001f;
+                const float inwardTolerance = -0.01f;
+                if (hit.distance <= contactTolerance &&
+                    Vector2.Dot(direction, hit.normal) >= inwardTolerance)
+                {
+                    continue;
+                }
                 return true;
             }
             return false;
@@ -585,16 +803,22 @@ namespace Turtle.DungeonRaid
             if (hurtbox == null) hurtbox = GetComponent<CircleCollider2D>();
             if (physicsBody != null)
             {
-                physicsBody.bodyType = RigidbodyType2D.Dynamic;
+                physicsBody.bodyType = useLightweightPhysics
+                    ? RigidbodyType2D.Kinematic
+                    : RigidbodyType2D.Dynamic;
                 physicsBody.gravityScale = 0f;
                 physicsBody.linearDamping = 8f;
                 physicsBody.freezeRotation = true;
-                physicsBody.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-                physicsBody.interpolation = RigidbodyInterpolation2D.Interpolate;
+                physicsBody.collisionDetectionMode = useLightweightPhysics
+                    ? CollisionDetectionMode2D.Discrete
+                    : CollisionDetectionMode2D.Continuous;
+                physicsBody.interpolation = useLightweightPhysics
+                    ? RigidbodyInterpolation2D.None
+                    : RigidbodyInterpolation2D.Interpolate;
             }
             if (hurtbox != null)
             {
-                hurtbox.isTrigger = false;
+                hurtbox.isTrigger = useTriggerHurtbox;
                 hurtbox.radius = Mathf.Max(0.1f, collisionRadius);
             }
         }
@@ -614,30 +838,38 @@ namespace Turtle.DungeonRaid
             if (lifeState == next) return;
             lifeState = next;
             hasDestination = false;
+            InvalidateNavigationPath();
             LifeStateChanged?.Invoke(this, next);
         }
 
         private void EnsurePresentation()
         {
             if (bodyRenderer == null || bodyRenderer.sprite == null) return;
-            shadowRenderer = CreateSpriteChild("Raid Shadow", bodyRenderer.sprite,
-                new Color(0f, 0f, 0f, 0.32f), new Vector3(1.18f, 0.52f, 1f),
-                new Vector3(0f, -0.22f, 0f), bodyRenderer.sortingOrder - 3);
-            ringRenderer = CreateSpriteChild("Role Ring", bodyRenderer.sprite,
-                new Color(identityColor.r, identityColor.g, identityColor.b, 0.46f),
-                new Vector3(1.36f, 1.36f, 1f), Vector3.zero, bodyRenderer.sortingOrder - 2);
+            if (!compactPresentation)
+            {
+                shadowRenderer = CreateSpriteChild("Raid Shadow", bodyRenderer.sprite,
+                    new Color(0f, 0f, 0f, 0.32f), new Vector3(1.18f, 0.52f, 1f),
+                    new Vector3(0f, -0.22f, 0f), bodyRenderer.sortingOrder - 3);
+            }
             healthBackground = CreateSpriteChild("Health Background", bodyRenderer.sprite,
                 new Color(0.08f, 0.04f, 0.04f, 0.9f), new Vector3(1.25f, 0.13f, 1f),
                 new Vector3(0f, 0.82f, 0f), bodyRenderer.sortingOrder + 3);
             healthFill = CreateSpriteChild("Health Fill", bodyRenderer.sprite,
                 new Color(0.85f, 0.05f, 0.04f, 1f), new Vector3(1.2f, 0.09f, 1f),
                 new Vector3(0f, 0.82f, 0f), bodyRenderer.sortingOrder + 4);
-            manaFill = CreateSpriteChild("Mana Fill", bodyRenderer.sprite,
-                new Color(0.08f, 0.42f, 1f, 1f), new Vector3(1.2f, 0.065f, 1f),
-                new Vector3(0f, 0.69f, 0f), bodyRenderer.sortingOrder + 4);
-            shieldRenderer = CreateSpriteChild("Shield Ring", bodyRenderer.sprite,
-                new Color(0.85f, 0.95f, 1f, 0f), new Vector3(1.55f, 1.55f, 1f),
-                Vector3.zero, bodyRenderer.sortingOrder + 2);
+            if (!compactPresentation)
+            {
+                manaFill = CreateSpriteChild("Mana Fill", bodyRenderer.sprite,
+                    new Color(0.08f, 0.42f, 1f, 1f), new Vector3(1.2f, 0.065f, 1f),
+                    new Vector3(0f, 0.69f, 0f), bodyRenderer.sortingOrder + 4);
+                shieldRenderer = CreateSpriteChild("Shield Ring", bodyRenderer.sprite,
+                    new Color(1f, 0.96f, 0.78f, 0f), new Vector3(1.55f, 1.55f, 1f),
+                    Vector3.zero, bodyRenderer.sortingOrder + 2);
+                // Enabling the renderer, rather than relying on transparent alpha,
+                // makes the visual contract unambiguous on every sprite material:
+                // no active temporary shield means no shield draw call.
+                shieldRenderer.enabled = false;
+            }
         }
 
         private SpriteRenderer CreateSpriteChild(
@@ -693,22 +925,17 @@ namespace Turtle.DungeonRaid
             }
             if (shieldRenderer != null)
             {
+                var shieldIsActive = HasTemporaryShield &&
+                                     lifeState == RaidLifeState.Active;
                 var color = shieldRenderer.color;
-                color.a = currentShield > 0f ? 0.62f : 0f;
+                color.a = shieldIsActive ? 0.62f : 0f;
                 shieldRenderer.color = color;
+                shieldRenderer.enabled = shieldIsActive;
             }
             if (healthBackground != null)
             {
                 healthBackground.gameObject.SetActive(lifeState != RaidLifeState.Dead);
                 healthFill.gameObject.SetActive(lifeState != RaidLifeState.Dead);
-            }
-            if (ringRenderer != null)
-            {
-                var color = ringRenderer.color;
-                color.a = lifeState == RaidLifeState.Active
-                    ? 0.34f + Mathf.Sin(raidTime * 4f) * 0.08f
-                    : 0.08f;
-                ringRenderer.color = color;
             }
             if (shadowRenderer != null)
             {
@@ -718,6 +945,62 @@ namespace Turtle.DungeonRaid
             {
                 hurtbox.enabled = lifeState != RaidLifeState.Dead;
             }
+        }
+
+        public void ConfigureRuntime(
+            string id,
+            string label,
+            RaidFaction assignedFaction,
+            RaidCombatRole assignedRole,
+            float health,
+            float mana,
+            float manaRegeneration,
+            float speed,
+            float damage,
+            float attackRange,
+            float preferredRange,
+            float attackCooldown,
+            bool ranged,
+            Color color,
+            List<RaidAbilitySpec> assignedAbilities,
+            float assignedCollisionRadius = 0.45f,
+            bool useCompactPresentation = false,
+            bool useScalePhysics = false,
+            bool useNonBlockingHurtbox = false,
+            bool allowDownedState = true)
+        {
+            agentId = id;
+            displayName = label;
+            faction = assignedFaction;
+            role = assignedRole;
+            maximumHealth = Mathf.Max(1f, health);
+            maximumMana = Mathf.Max(0f, mana);
+            manaRegenerationPerSecond = Mathf.Max(0f, manaRegeneration);
+            moveSpeed = Mathf.Max(0.1f, speed);
+            basicAttackDamage = Mathf.Max(0f, damage);
+            basicAttackRange = Mathf.Max(0.1f, attackRange);
+            preferredCombatRange = Mathf.Max(0.1f, preferredRange);
+            basicAttackCooldown = Mathf.Max(0.05f, attackCooldown);
+            rangedBasicAttack = ranged;
+            identityColor = color;
+            abilities = assignedAbilities ?? new List<RaidAbilitySpec>();
+            collisionRadius = Mathf.Max(0.1f, assignedCollisionRadius);
+            compactPresentation = useCompactPresentation;
+            useLightweightPhysics = useScalePhysics;
+            useTriggerHurtbox = useNonBlockingHurtbox;
+            usesDownedState = allowDownedState;
+            avoidanceHandedness = StableAvoidanceHandedness(agentId);
+            bodyRenderer = GetComponent<SpriteRenderer>();
+            physicsBody = GetComponent<Rigidbody2D>();
+            hurtbox = GetComponent<CircleCollider2D>();
+            EnsurePhysics();
+            if (bodyRenderer != null)
+            {
+                bodyRenderer.color = color;
+                bodyRenderer.sortingOrder = assignedFaction == RaidFaction.Hunters ? 30 : 25;
+            }
+            spawnPosition = transform.position;
+            baseLocalScale = transform.localScale;
         }
 
 #if UNITY_EDITOR
@@ -736,35 +1019,34 @@ namespace Turtle.DungeonRaid
             float attackCooldown,
             bool ranged,
             Color color,
-            List<RaidAbilitySpec> assignedAbilities)
+            List<RaidAbilitySpec> assignedAbilities,
+            float assignedCollisionRadius = 0.45f,
+            bool useCompactPresentation = false,
+            bool useScalePhysics = false,
+            bool useNonBlockingHurtbox = false,
+            bool allowDownedState = true)
         {
-            agentId = id;
-            displayName = label;
-            faction = assignedFaction;
-            role = assignedRole;
-            maximumHealth = Mathf.Max(1f, health);
-            maximumMana = Mathf.Max(0f, mana);
-            manaRegenerationPerSecond = Mathf.Max(0f, manaRegeneration);
-            moveSpeed = Mathf.Max(0.1f, speed);
-            basicAttackDamage = Mathf.Max(0f, damage);
-            basicAttackRange = Mathf.Max(0.1f, attackRange);
-            preferredCombatRange = Mathf.Max(0.1f, preferredRange);
-            basicAttackCooldown = Mathf.Max(0.05f, attackCooldown);
-            rangedBasicAttack = ranged;
-            identityColor = color;
-            abilities = assignedAbilities ?? new List<RaidAbilitySpec>();
-            avoidanceHandedness = StableAvoidanceHandedness(agentId);
-            bodyRenderer = GetComponent<SpriteRenderer>();
-            physicsBody = GetComponent<Rigidbody2D>();
-            hurtbox = GetComponent<CircleCollider2D>();
-            EnsurePhysics();
-            if (bodyRenderer != null)
-            {
-                bodyRenderer.color = color;
-                bodyRenderer.sortingOrder = assignedFaction == RaidFaction.Hunters ? 30 : 25;
-            }
-            spawnPosition = transform.position;
-            baseLocalScale = transform.localScale;
+            ConfigureRuntime(
+                id,
+                label,
+                assignedFaction,
+                assignedRole,
+                health,
+                mana,
+                manaRegeneration,
+                speed,
+                damage,
+                attackRange,
+                preferredRange,
+                attackCooldown,
+                ranged,
+                color,
+                assignedAbilities,
+                assignedCollisionRadius,
+                useCompactPresentation,
+                useScalePhysics,
+                useNonBlockingHurtbox,
+                allowDownedState);
         }
 #endif
     }

@@ -1,0 +1,2433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Dungeon Generation Wiki</title>
+<style>:root{color-scheme:light;background:#fff}html,body{margin:0;width:100%;height:100%;background:#fff}body{box-sizing:border-box;padding:0}iframe{display:block;width:100%;height:100vh;margin:0;border:0;background:#fff}</style>
+</head>
+<body>
+<iframe sandbox="allow-scripts" referrerpolicy="no-referrer" title="Dungeon Generation Wiki" srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;
+&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;; script-src &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; &#x27;wasm-unsafe-eval&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src &#x27;unsafe-inline&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src &#x27;none&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;&quot;&gt;
+&lt;title&gt;Dungeon Generation Wiki&lt;/title&gt;
+&lt;style&gt;:root {
+  color-scheme: light dark;
+  background-color: var(
+    --background,
+    var(--color-background-primary, light-dark(rgb(255 255 255), rgb(24 24 24)))
+  ) !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: var(
+    --color-background-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --card: color-mix(in oklab, var(--foreground) 5%, var(--background));
+  --card-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --popover: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255), rgb(45 45 45))
+  );
+  --popover-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --primary: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --primary-foreground: var(
+    --color-text-inverse,
+    light-dark(rgb(255 255 255), rgb(13 13 13))
+  );
+  --secondary: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%))
+  );
+  --secondary-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: var(
+    --color-text-secondary,
+    light-dark(rgb(26 28 31 / 49.4%), rgb(255 255 255 / 49.8%))
+  );
+  --accent: var(
+    --color-background-info,
+    light-dark(rgb(229 242 255), rgb(13 39 63))
+  );
+  --accent-foreground: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --destructive: var(
+    --color-text-warning,
+    light-dark(rgb(226 85 7), rgb(255 133 73))
+  );
+  --border: var(
+    --color-border-secondary,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+  --input: var(
+    --color-border-primary,
+    light-dark(
+      rgb(26 28 31 / 11.8%),
+      color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+    )
+  );
+  --ring: var(
+    --color-ring-primary,
+    light-dark(rgb(51 156 255), rgb(131 195 255 / 76%))
+  );
+  --font-size-base: var(--font-text-md-size, 14px);
+  --red: light-dark(rgb(186 38 35), rgb(250 66 62));
+  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(rgb(243 136 59), rgb(245 154 86));
+  --viz-series-3: light-dark(rgb(93 201 119), rgb(116 213 139));
+  --viz-series-4: light-dark(rgb(235 119 177), rgb(240 143 192));
+  --viz-series-5: light-dark(rgb(155 121 236), rgb(170 145 239));
+  --viz-series-6: light-dark(rgb(58 185 177), rgb(90 203 194));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, &quot;Segoe UI&quot;, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;,
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --radius: var(--border-radius-lg, 12.5px);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url(&quot;data:image/svg+xml,%3Csvg xmlns=&#x27;http://www.w3.org/2000/svg&#x27; viewBox=&#x27;0 0 17 17&#x27;%3E%3Cpath d=&#x27;M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z&#x27;/%3E%3C/svg%3E&quot;);
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+}
+
+:root[data-theme=&quot;light&quot;] {
+  color-scheme: light;
+}
+
+:root[data-theme=&quot;dark&quot;] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html &gt; body {
+  /* Preserve MCP aliases for older inline renderers without creating :root cycles. */
+  --color-background-primary: var(
+    --background,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --color-text-primary: var(
+    --foreground,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --color-border-secondary: var(
+    --border,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+
+  margin: 0;
+  padding: 5px;
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: pointer;
+  font-weight: var(--font-weight-medium, 500);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.table-responsive &gt; .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead th {
+  padding-block: 8px;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 6px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align=&quot;right&quot;]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align=&quot;center&quot;]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  corner-shape: superellipse(1.5);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget &gt; :not(.card) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls &gt; .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls &gt; .form-label &gt; :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(in srgb, var(--primary-foreground) 50%, transparent);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type=&quot;file&quot;] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type=&quot;file&quot;]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type=&quot;file&quot;]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type=&quot;color&quot;] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+  corner-shape: superellipse(1.5);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;checkbox&quot;]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: &quot;&quot;;
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type=&quot;radio&quot;] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type=&quot;radio&quot;]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: &quot;&quot;;
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+    [aria-pressed=&quot;true&quot;],
+    [aria-selected=&quot;true&quot;],
+    .is-selected
+  ) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed=&quot;true&quot;], [aria-selected=&quot;true&quot;], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget &gt; svg {
+  width: 100%;
+}
+
+/* Model-authored chart rules can otherwise stretch icons after these styles load. */
+svg.lucide {
+  display: block;
+  width: 16px !important;
+  height: 16px !important;
+  flex: none;
+  margin: 0 !important;
+  stroke-width: 1.6;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+
+html&gt;body{padding:0}&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div id=&quot;turtle-dungeon-wiki&quot;&gt;
+  &lt;style&gt;
+    #turtle-dungeon-wiki {
+      --wiki-background: #ffffff;
+      --wiki-text: #202122;
+      --wiki-secondary-text: #54595d;
+      --wiki-link: #3366cc;
+      --wiki-link-visited: #795cb2;
+      --wiki-border: #a2a9b1;
+      --wiki-rule: #c8ccd1;
+      --wiki-panel: #f8f9fa;
+      --wiki-panel-strong: #eaecf0;
+      --wiki-blue-pale: #eaf3ff;
+      --wiki-blue: #36c;
+      --wiki-green: #14866d;
+      --wiki-red: #b32424;
+      --wiki-gold: #a66a00;
+      --wiki-teal: #067c75;
+      --wiki-purple: #6b4ba1;
+      width: 100%;
+      min-height: 100vh;
+      color: var(--wiki-text);
+      background: var(--wiki-background);
+      font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, Lato, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    #turtle-dungeon-wiki * { box-sizing: border-box; }
+    #turtle-dungeon-wiki strong,
+    #turtle-dungeon-wiki b { font-weight: 500; }
+    #turtle-dungeon-wiki a { color: var(--wiki-link); text-decoration: none; }
+    #turtle-dungeon-wiki a:visited { color: var(--wiki-link-visited); }
+    #turtle-dungeon-wiki a:hover { text-decoration: underline; }
+    #turtle-dungeon-wiki p { margin: 0.55em 0 1em; }
+    #turtle-dungeon-wiki code,
+    #turtle-dungeon-wiki pre {
+      font-family: Consolas, &quot;Liberation Mono&quot;, Menlo, monospace;
+      background: var(--wiki-panel);
+      border: 1px solid var(--wiki-panel-strong);
+    }
+    #turtle-dungeon-wiki code { padding: 0.08em 0.28em; }
+    #turtle-dungeon-wiki pre { margin: 0.75em 0; padding: 0.8em 1em; white-space: pre-wrap; overflow-wrap: anywhere; }
+    #turtle-dungeon-wiki .wiki-site-header {
+      display: grid;
+      grid-template-columns: minmax(220px, 280px) minmax(260px, 500px) minmax(180px, 1fr);
+      gap: 24px;
+      align-items: center;
+      min-height: 74px;
+      padding: 10px 42px;
+      border-bottom: 1px solid var(--wiki-rule);
+      background: var(--wiki-background);
+    }
+    #turtle-dungeon-wiki .wiki-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      color: var(--wiki-text);
+      text-decoration: none;
+    }
+    #turtle-dungeon-wiki .wiki-brand:visited { color: var(--wiki-text); }
+    #turtle-dungeon-wiki .wiki-brand:hover { text-decoration: none; }
+    #turtle-dungeon-wiki .wiki-brand-mark {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border: 1px solid var(--wiki-border);
+      border-radius: 50%;
+      font-family: Georgia, &quot;Times New Roman&quot;, serif;
+      font-size: 26px;
+      background: repeating-linear-gradient(35deg, #fff 0 5px, #eaecf0 5px 6px);
+    }
+    #turtle-dungeon-wiki .wiki-brand-copy { display: flex; flex-direction: column; line-height: 1.05; }
+    #turtle-dungeon-wiki .wiki-brand-name {
+      font-family: Georgia, &quot;Times New Roman&quot;, serif;
+      font-size: 20px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    #turtle-dungeon-wiki .wiki-brand-tagline { margin-top: 5px; color: var(--wiki-secondary-text); font-size: 11px; letter-spacing: 0.05em; }
+    #turtle-dungeon-wiki .wiki-search { display: flex; min-width: 0; }
+    #turtle-dungeon-wiki .wiki-search input {
+      width: 100%;
+      min-width: 0;
+      height: 34px;
+      padding: 5px 9px;
+      color: var(--wiki-text);
+      background: #fff;
+      border: 1px solid var(--wiki-border);
+      border-right: 0;
+      border-radius: 0;
+      font: inherit;
+    }
+    #turtle-dungeon-wiki .wiki-search button {
+      height: 34px;
+      padding: 4px 13px;
+      border: 1px solid var(--wiki-border);
+      border-radius: 0;
+      color: var(--wiki-text);
+      background: var(--wiki-panel);
+      font: inherit;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    #turtle-dungeon-wiki .wiki-user-links { justify-self: end; display: flex; gap: 15px; white-space: nowrap; }
+    #turtle-dungeon-wiki .wiki-shell {
+      display: grid;
+      grid-template-columns: minmax(170px, 220px) minmax(0, 1000px);
+      gap: 38px;
+      align-items: start;
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 28px 42px 64px;
+    }
+    #turtle-dungeon-wiki .wiki-nav {
+      position: sticky;
+      top: 18px;
+      padding: 0 18px 0 0;
+      color: var(--wiki-secondary-text);
+      font-size: 13px;
+    }
+    #turtle-dungeon-wiki .wiki-nav strong {
+      display: block;
+      padding: 0 0 7px;
+      border-bottom: 1px solid var(--wiki-rule);
+      color: var(--wiki-text);
+      font-weight: 500;
+    }
+    #turtle-dungeon-wiki .wiki-nav ol {
+      margin: 8px 0 20px;
+      padding-left: 22px;
+    }
+    #turtle-dungeon-wiki .wiki-nav li { margin: 3px 0; padding-left: 2px; }
+    #turtle-dungeon-wiki .wiki-nav a,
+    #turtle-dungeon-wiki .wiki-nav a:visited { color: var(--wiki-link); }
+    #turtle-dungeon-wiki .wiki-article { min-width: 0; }
+    #turtle-dungeon-wiki .wiki-article-header h1 {
+      margin: 0;
+      padding: 0;
+      font-family: &quot;Linux Libertine&quot;, Georgia, &quot;Times New Roman&quot;, serif;
+      font-size: 30px;
+      line-height: 1.3;
+      font-weight: 400;
+    }
+    #turtle-dungeon-wiki .wiki-origin { margin: 2px 0 9px; color: var(--wiki-secondary-text); font-size: 12px; }
+    #turtle-dungeon-wiki .wiki-page-tabs {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      margin: 0 0 18px;
+      border-bottom: 1px solid var(--wiki-border);
+    }
+    #turtle-dungeon-wiki .wiki-tab-group { display: flex; gap: 16px; }
+    #turtle-dungeon-wiki .wiki-tab {
+      display: inline-block;
+      padding: 7px 0 6px;
+      color: var(--wiki-link);
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+    }
+    #turtle-dungeon-wiki .wiki-tab.is-active { color: var(--wiki-text); border-color: var(--wiki-text); }
+    #turtle-dungeon-wiki .wiki-infobox {
+      float: right;
+      clear: right;
+      width: min(300px, 42%);
+      margin: 0 0 18px 24px;
+      padding: 0;
+      border: 1px solid var(--wiki-border);
+      border-radius: 0;
+      box-shadow: none;
+      color: var(--wiki-text);
+      background: var(--wiki-panel);
+      font-size: 13px;
+    }
+    #turtle-dungeon-wiki .wiki-infobox-title {
+      display: block;
+      padding: 7px 10px;
+      text-align: center;
+      font-family: Georgia, &quot;Times New Roman&quot;, serif;
+      font-size: 16px;
+      background: var(--wiki-panel-strong);
+      border-bottom: 1px solid var(--wiki-border);
+    }
+    #turtle-dungeon-wiki .wiki-infobox dl {
+      display: grid;
+      grid-template-columns: minmax(88px, 0.8fr) minmax(0, 1.2fr);
+      gap: 5px 10px;
+      margin: 0;
+      padding: 9px 10px 11px;
+    }
+    #turtle-dungeon-wiki .wiki-infobox dt { color: var(--wiki-secondary-text); font-weight: 500; }
+    #turtle-dungeon-wiki .wiki-infobox dd { margin: 0; }
+    #turtle-dungeon-wiki .wiki-lead { margin: 0 0 18px; max-width: 86ch; }
+    #turtle-dungeon-wiki .wiki-section {
+      clear: both;
+      padding: 9px 0 18px;
+      border: 0;
+    }
+    #turtle-dungeon-wiki .wiki-section:first-of-type { padding-top: 0; }
+    #turtle-dungeon-wiki .wiki-section h2 {
+      margin: 0.75em 0 0.4em;
+      padding: 0 0 0.12em;
+      border-bottom: 1px solid var(--wiki-border);
+      font-family: &quot;Linux Libertine&quot;, Georgia, &quot;Times New Roman&quot;, serif;
+      font-size: 23px;
+      line-height: 1.35;
+      font-weight: 400;
+    }
+    #turtle-dungeon-wiki .wiki-section h3 {
+      margin: 1.1em 0 0.35em;
+      font-size: 17px;
+      line-height: 1.35;
+      font-weight: 500;
+    }
+    #turtle-dungeon-wiki .wiki-section p { max-width: 88ch; }
+    #turtle-dungeon-wiki .card {
+      border: 1px solid var(--wiki-border);
+      border-radius: 0;
+      box-shadow: none;
+      color: var(--wiki-text);
+      background: var(--wiki-panel);
+    }
+    #turtle-dungeon-wiki .viz-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin: 12px 0;
+    }
+    #turtle-dungeon-wiki .viz-stat { display: flex; flex-direction: column; gap: 2px; padding: 9px 11px; }
+    #turtle-dungeon-wiki .viz-stat-value { font-size: 18px; font-weight: 500; }
+    #turtle-dungeon-wiki .text-muted { color: var(--wiki-secondary-text); }
+    #turtle-dungeon-wiki .text-small { font-size: 12px; }
+    #turtle-dungeon-wiki .viz-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      gap: 10px 14px;
+      margin: 10px 0;
+      padding: 10px 12px;
+      border: 1px solid var(--wiki-rule);
+      background: var(--wiki-panel);
+    }
+    #turtle-dungeon-wiki .form-label { display: grid; gap: 4px; color: var(--wiki-secondary-text); font-size: 12px; }
+    #turtle-dungeon-wiki .form-control,
+    #turtle-dungeon-wiki .form-select {
+      min-height: 32px;
+      padding: 4px 7px;
+      border: 1px solid var(--wiki-border);
+      border-radius: 0;
+      color: var(--wiki-text);
+      background: #fff;
+      font: inherit;
+    }
+    #turtle-dungeon-wiki .form-range { accent-color: var(--wiki-blue); }
+    #turtle-dungeon-wiki .btn {
+      min-height: 32px;
+      padding: 4px 10px;
+      border: 1px solid var(--wiki-border);
+      border-radius: 2px;
+      box-shadow: none;
+      color: var(--wiki-text);
+      background: var(--wiki-panel);
+      font: inherit;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    #turtle-dungeon-wiki .btn:hover { background: var(--wiki-panel-strong); }
+    #turtle-dungeon-wiki .btn-primary { color: #fff; border-color: #2a4b8d; background: var(--wiki-blue); }
+    #turtle-dungeon-wiki .btn-primary:hover { background: #2a4b8d; }
+    #turtle-dungeon-wiki .btn.is-selected,
+    #turtle-dungeon-wiki .btn[aria-pressed=&quot;true&quot;] { color: #fff; border-color: #2a4b8d; background: var(--wiki-blue); }
+    #turtle-dungeon-wiki .wiki-status-line { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 10px 0 0; }
+    #turtle-dungeon-wiki .wiki-map,
+    #turtle-dungeon-wiki .wiki-room-plan {
+      display: block;
+      width: 100%;
+      height: auto;
+      margin: 12px 0 8px;
+      overflow: visible;
+      border: 1px solid var(--wiki-border);
+      background: var(--wiki-panel);
+    }
+    #turtle-dungeon-wiki .wiki-map .map-field,
+    #turtle-dungeon-wiki .wiki-room-plan .plan-field { fill: var(--wiki-panel); }
+    #turtle-dungeon-wiki .wiki-map .corridor { fill: none; stroke: var(--wiki-rule); stroke-width: 7; stroke-linejoin: round; stroke-linecap: round; }
+    #turtle-dungeon-wiki .wiki-map .corridor-critical { stroke: var(--wiki-blue); stroke-width: 9; }
+    #turtle-dungeon-wiki .wiki-map .room-shape { fill: #fff; stroke: var(--wiki-border); stroke-width: 2; }
+    #turtle-dungeon-wiki .wiki-map .room-entrance { fill: #dff3ed; }
+    #turtle-dungeon-wiki .wiki-map .room-boss { fill: #f8e6e6; }
+    #turtle-dungeon-wiki .wiki-map .room-reward { fill: #fff3cd; }
+    #turtle-dungeon-wiki .wiki-map .room-resource { fill: #e1f4f3; }
+    #turtle-dungeon-wiki .wiki-map .room-event { fill: #eee7f8; }
+    #turtle-dungeon-wiki .wiki-map .room-transition { fill: var(--wiki-blue-pale); }
+    #turtle-dungeon-wiki .wiki-map .room-selected { stroke: var(--wiki-blue); stroke-width: 4; }
+    #turtle-dungeon-wiki .wiki-map text,
+    #turtle-dungeon-wiki .wiki-room-plan text { fill: var(--wiki-text); font-family: inherit; text-anchor: middle; dominant-baseline: middle; }
+    #turtle-dungeon-wiki .wiki-map .room-subtext { fill: var(--wiki-secondary-text); }
+    #turtle-dungeon-wiki .wiki-legend { display: flex; flex-wrap: wrap; gap: 7px 16px; margin: 8px 0; }
+    #turtle-dungeon-wiki .wiki-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    #turtle-dungeon-wiki .wiki-swatch { width: 10px; height: 10px; border-radius: 50%; background: var(--wiki-rule); }
+    #turtle-dungeon-wiki .wiki-swatch.critical { background: var(--wiki-blue); }
+    #turtle-dungeon-wiki .wiki-swatch.entrance { background: var(--wiki-green); }
+    #turtle-dungeon-wiki .wiki-swatch.branch { background: var(--wiki-gold); }
+    #turtle-dungeon-wiki .wiki-swatch.boss { background: var(--wiki-red); }
+    #turtle-dungeon-wiki .wiki-pipeline {
+      list-style: none;
+      margin: 12px 0 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      counter-reset: pipeline;
+    }
+    #turtle-dungeon-wiki .wiki-pipeline li { counter-increment: pipeline; padding: 8px 9px; border: 1px solid var(--wiki-rule); background: var(--wiki-panel); }
+    #turtle-dungeon-wiki .wiki-pipeline li::before { content: counter(pipeline, decimal-leading-zero); display: block; margin-bottom: 2px; color: var(--wiki-secondary-text); font-size: 12px; }
+    #turtle-dungeon-wiki .wiki-two-column { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: start; }
+    #turtle-dungeon-wiki .wiki-room-plan .room-floor { fill: #eef7f4; stroke: var(--wiki-border); stroke-width: 3; }
+    #turtle-dungeon-wiki[data-theme=&quot;crypt&quot;] .wiki-room-plan .room-floor { fill: #f2edf8; }
+    #turtle-dungeon-wiki[data-theme=&quot;temple&quot;] .wiki-room-plan .room-floor { fill: #fff6df; }
+    #turtle-dungeon-wiki[data-theme=&quot;frozen&quot;] .wiki-room-plan .room-floor { fill: #eaf3ff; }
+    #turtle-dungeon-wiki .wiki-room-plan .room-wall { stroke: var(--wiki-text); stroke-width: 8; stroke-linecap: square; }
+    #turtle-dungeon-wiki .wiki-room-plan .room-obstacle { fill: var(--wiki-panel-strong); stroke: var(--wiki-text); stroke-width: 2; }
+    #turtle-dungeon-wiki .wiki-room-plan .theme-mark { fill: #dff3ed; stroke: var(--wiki-green); stroke-width: 1; }
+    #turtle-dungeon-wiki[data-theme=&quot;crypt&quot;] .wiki-room-plan .theme-mark { stroke: var(--wiki-purple); fill: #eee7f8; }
+    #turtle-dungeon-wiki[data-theme=&quot;temple&quot;] .wiki-room-plan .theme-mark { stroke: var(--wiki-gold); fill: #fff3cd; }
+    #turtle-dungeon-wiki[data-theme=&quot;frozen&quot;] .wiki-room-plan .theme-mark { stroke: var(--wiki-blue); fill: #eaf3ff; }
+    #turtle-dungeon-wiki .wiki-detail-list { display: grid; grid-template-columns: minmax(110px, 0.7fr) minmax(0, 1.3fr); gap: 7px 14px; margin: 12px 0; }
+    #turtle-dungeon-wiki .wiki-detail-list dt { color: var(--wiki-secondary-text); font-weight: 500; }
+    #turtle-dungeon-wiki .wiki-detail-list dd { margin: 0; }
+    #turtle-dungeon-wiki .wiki-code-map code { white-space: normal; overflow-wrap: anywhere; }
+    #turtle-dungeon-wiki .wiki-note,
+    #turtle-dungeon-wiki .wiki-edit-box { margin: 12px 0; padding: 10px 12px; border: 1px solid var(--wiki-border); border-left: 4px solid var(--wiki-blue); background: var(--wiki-panel); }
+    #turtle-dungeon-wiki .wiki-edit-box h3 { margin-top: 0; }
+    #turtle-dungeon-wiki .wiki-state-key { display: flex; flex-wrap: wrap; gap: 7px; margin: 9px 0 13px; }
+    #turtle-dungeon-wiki .viz-badge { display: inline-block; padding: 1px 7px; border: 1px solid var(--wiki-border); border-radius: 2px; color: var(--wiki-text); background: var(--wiki-panel); font-size: 12px; }
+    #turtle-dungeon-wiki .table-responsive { width: 100%; overflow-x: auto; }
+    #turtle-dungeon-wiki .table { width: 100%; border-collapse: collapse; margin: 0.75em 0 1em; background: #fff; }
+    #turtle-dungeon-wiki .table th,
+    #turtle-dungeon-wiki .table td { padding: 6px 8px; border: 1px solid var(--wiki-border); text-align: left; vertical-align: top; }
+    #turtle-dungeon-wiki .table th { background: var(--wiki-panel-strong); font-weight: 500; }
+    #turtle-dungeon-wiki .table-sm th,
+    #turtle-dungeon-wiki .table-sm td { padding: 4px 7px; }
+    #turtle-dungeon-wiki .wiki-footnote { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--wiki-border); color: var(--wiki-secondary-text); font-size: 12px; }
+    @media (max-width: 980px) {
+      #turtle-dungeon-wiki .wiki-site-header { grid-template-columns: minmax(210px, 260px) minmax(220px, 1fr); padding-inline: 24px; }
+      #turtle-dungeon-wiki .wiki-user-links { display: none; }
+      #turtle-dungeon-wiki .wiki-shell { grid-template-columns: minmax(155px, 190px) minmax(0, 1fr); gap: 24px; padding-inline: 24px; }
+      #turtle-dungeon-wiki .wiki-pipeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 760px) {
+      #turtle-dungeon-wiki .wiki-site-header { grid-template-columns: 1fr; gap: 10px; }
+      #turtle-dungeon-wiki .wiki-shell { grid-template-columns: 1fr; gap: 20px; padding-top: 20px; }
+      #turtle-dungeon-wiki .wiki-nav { position: static; padding: 0 0 12px; border-bottom: 1px solid var(--wiki-rule); }
+      #turtle-dungeon-wiki .wiki-nav ol { columns: 2; }
+      #turtle-dungeon-wiki .wiki-infobox { float: none; width: 100%; margin: 0 0 18px; }
+      #turtle-dungeon-wiki .wiki-two-column { grid-template-columns: 1fr; }
+      #turtle-dungeon-wiki .wiki-page-tabs { overflow-x: auto; }
+    }
+    @media (max-width: 520px) {
+      #turtle-dungeon-wiki .wiki-site-header,
+      #turtle-dungeon-wiki .wiki-shell { padding-inline: 16px; }
+      #turtle-dungeon-wiki .wiki-nav ol { columns: 1; }
+      #turtle-dungeon-wiki .wiki-pipeline,
+      #turtle-dungeon-wiki .viz-grid { grid-template-columns: 1fr; }
+      #turtle-dungeon-wiki .wiki-infobox dl,
+      #turtle-dungeon-wiki .wiki-detail-list { grid-template-columns: 1fr; gap: 2px; }
+      #turtle-dungeon-wiki .wiki-tab-group:last-child { display: none; }
+    }
+  &lt;/style&gt;
+
+  &lt;header class=&quot;wiki-site-header&quot; id=&quot;dg-top&quot;&gt;
+    &lt;a class=&quot;wiki-brand&quot; href=&quot;#dg-top&quot; aria-label=&quot;Turtle Development Wiki home&quot;&gt;
+      &lt;span class=&quot;wiki-brand-mark&quot; aria-hidden=&quot;true&quot;&gt;T&lt;/span&gt;
+      &lt;span class=&quot;wiki-brand-copy&quot;&gt;
+        &lt;span class=&quot;wiki-brand-name&quot;&gt;Turtle Wiki&lt;/span&gt;
+        &lt;span class=&quot;wiki-brand-tagline&quot;&gt;The development reference&lt;/span&gt;
+      &lt;/span&gt;
+    &lt;/a&gt;
+    &lt;form class=&quot;wiki-search&quot; id=&quot;dg-search-form&quot; role=&quot;search&quot;&gt;
+      &lt;label class=&quot;sr-only&quot; for=&quot;dg-search-input&quot;&gt;Search Turtle Wiki&lt;/label&gt;
+      &lt;input id=&quot;dg-search-input&quot; type=&quot;search&quot; placeholder=&quot;Search Turtle Wiki&quot; autocomplete=&quot;off&quot;&gt;
+      &lt;button type=&quot;submit&quot;&gt;Search&lt;/button&gt;
+    &lt;/form&gt;
+    &lt;nav class=&quot;wiki-user-links&quot; aria-label=&quot;Wiki links&quot;&gt;
+      &lt;a href=&quot;#dg-overview&quot;&gt;Main page&lt;/a&gt;
+      &lt;a href=&quot;#dg-iteration&quot;&gt;Design process&lt;/a&gt;
+      &lt;a href=&quot;#dg-code&quot;&gt;Project files&lt;/a&gt;
+    &lt;/nav&gt;
+  &lt;/header&gt;
+
+  &lt;div class=&quot;wiki-shell&quot;&gt;
+    &lt;aside class=&quot;wiki-nav&quot; aria-label=&quot;Article contents&quot;&gt;
+      &lt;strong&gt;Contents&lt;/strong&gt;
+      &lt;ol&gt;
+        &lt;li&gt;&lt;a href=&quot;#dg-overview&quot;&gt;Overview&lt;/a&gt;&lt;/li&gt;
+        &lt;li&gt;&lt;a href=&quot;#dg-explorer&quot;&gt;Layout explorer&lt;/a&gt;&lt;/li&gt;
+        &lt;li&gt;&lt;a href=&quot;#dg-pipeline&quot;&gt;Generation pipeline&lt;/a&gt;&lt;/li&gt;
+        &lt;li&gt;&lt;a href=&quot;#dg-semantics&quot;&gt;Room semantics&lt;/a&gt;&lt;/li&gt;
+        &lt;li&gt;&lt;a href=&quot;#dg-catalogue&quot;&gt;Room catalogue&lt;/a&gt;&lt;/li&gt;
+        &lt;li&gt;&lt;a href=&quot;#dg-corridors&quot;&gt;Corridors and navigation&lt;/a&gt;&lt;/li&gt;
+        &lt;li&gt;&lt;a href=&quot;#dg-feedback&quot;&gt;Playtest direction&lt;/a&gt;&lt;/li&gt;
+        &lt;li&gt;&lt;a href=&quot;#dg-art&quot;&gt;Art direction&lt;/a&gt;&lt;/li&gt;
+        &lt;li&gt;&lt;a href=&quot;#dg-iteration&quot;&gt;Iteration workflow&lt;/a&gt;&lt;/li&gt;
+        &lt;li&gt;&lt;a href=&quot;#dg-lifecycle&quot;&gt;Seeds and persistence&lt;/a&gt;&lt;/li&gt;
+        &lt;li&gt;&lt;a href=&quot;#dg-status&quot;&gt;Implementation status&lt;/a&gt;&lt;/li&gt;
+        &lt;li&gt;&lt;a href=&quot;#dg-code&quot;&gt;Code map&lt;/a&gt;&lt;/li&gt;
+      &lt;/ol&gt;
+    &lt;/aside&gt;
+
+    &lt;article class=&quot;wiki-article&quot;&gt;
+      &lt;header class=&quot;wiki-article-header&quot;&gt;
+        &lt;h1&gt;Dungeon generation&lt;/h1&gt;
+        &lt;p class=&quot;wiki-origin&quot;&gt;From Turtle Wiki, the authoritative development reference&lt;/p&gt;
+        &lt;nav class=&quot;wiki-page-tabs&quot; aria-label=&quot;Article tools&quot;&gt;
+          &lt;span class=&quot;wiki-tab-group&quot;&gt;
+            &lt;a class=&quot;wiki-tab is-active&quot; href=&quot;#dg-overview&quot;&gt;Article&lt;/a&gt;
+            &lt;a class=&quot;wiki-tab&quot; href=&quot;#dg-iteration&quot;&gt;Discussion&lt;/a&gt;
+          &lt;/span&gt;
+          &lt;span class=&quot;wiki-tab-group&quot;&gt;
+            &lt;a class=&quot;wiki-tab is-active&quot; href=&quot;#dg-overview&quot;&gt;Read&lt;/a&gt;
+            &lt;a class=&quot;wiki-tab&quot; href=&quot;#dg-status&quot;&gt;View history&lt;/a&gt;
+            &lt;a class=&quot;wiki-tab&quot; href=&quot;#dg-code&quot;&gt;View source&lt;/a&gt;
+          &lt;/span&gt;
+        &lt;/nav&gt;
+      &lt;/header&gt;
+
+      &lt;aside class=&quot;card wiki-infobox&quot; aria-label=&quot;Dungeon generator facts&quot;&gt;
+        &lt;strong class=&quot;wiki-infobox-title&quot;&gt;Dungeon generator&lt;/strong&gt;
+        &lt;dl&gt;
+          &lt;dt&gt;Method&lt;/dt&gt;&lt;dd&gt;Room-first cardinal graph&lt;/dd&gt;
+          &lt;dt&gt;Room count&lt;/dt&gt;&lt;dd&gt;8–12&lt;/dd&gt;
+          &lt;dt&gt;Loop ceiling&lt;/dt&gt;&lt;dd&gt;0–2 by default&lt;/dd&gt;
+          &lt;dt&gt;Door width&lt;/dt&gt;&lt;dd&gt;4.5 Unity units&lt;/dd&gt;
+          &lt;dt&gt;Preview seed&lt;/dt&gt;&lt;dd&gt;&lt;code&gt;731245&lt;/code&gt;&lt;/dd&gt;
+          &lt;dt&gt;Templates&lt;/dt&gt;&lt;dd&gt;11&lt;/dd&gt;
+          &lt;dt&gt;Scene&lt;/dt&gt;&lt;dd&gt;&lt;code&gt;Demo Dungeon&lt;/code&gt;&lt;/dd&gt;
+          &lt;dt&gt;Combat reference&lt;/dt&gt;&lt;dd&gt;&lt;em&gt;Kenshi&lt;/em&gt; with magic&lt;/dd&gt;
+          &lt;dt&gt;Dungeon reference&lt;/dt&gt;&lt;dd&gt;&lt;em&gt;Enter the Gungeon&lt;/em&gt;&lt;/dd&gt;
+          &lt;dt&gt;Reference state&lt;/dt&gt;&lt;dd&gt;Living document&lt;/dd&gt;
+        &lt;/dl&gt;
+      &lt;/aside&gt;
+
+      &lt;section class=&quot;wiki-section&quot; id=&quot;dg-overview&quot;&gt;
+        &lt;p class=&quot;wiki-lead&quot;&gt;&lt;strong&gt;The dungeon system builds a connected graph first, then turns that abstract graph into a playable 2D level.&lt;/strong&gt; A seed determines room placement, graph connections, semantic purposes, spatial templates, corridor bends, and the location of the raid fixture. The graph can be simulated without scene objects; the materializer is responsible for Unity floors, walls, colliders, props, spawn markers, and runtime bindings.&lt;/p&gt;
+
+        &lt;div class=&quot;viz-grid&quot;&gt;
+          &lt;div class=&quot;card viz-stat&quot;&gt;
+            &lt;span class=&quot;text-muted&quot;&gt;Graph guarantee&lt;/span&gt;
+            &lt;span class=&quot;viz-stat-value&quot;&gt;100% connected&lt;/span&gt;
+            &lt;span class=&quot;text-small&quot;&gt;Every room is reachable from the entrance.&lt;/span&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;card viz-stat&quot;&gt;
+            &lt;span class=&quot;text-muted&quot;&gt;Critical path&lt;/span&gt;
+            &lt;span class=&quot;viz-stat-value&quot;&gt;Graph diameter&lt;/span&gt;
+            &lt;span class=&quot;text-small&quot;&gt;Entrance and boss occupy distant endpoints.&lt;/span&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;card viz-stat&quot;&gt;
+            &lt;span class=&quot;text-muted&quot;&gt;Reproduction&lt;/span&gt;
+            &lt;span class=&quot;viz-stat-value&quot;&gt;Seeded&lt;/span&gt;
+            &lt;span class=&quot;text-small&quot;&gt;The same seed reconstructs the same plan.&lt;/span&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;p&gt;The current implementation is intentionally theme-independent. “Encounter,” “reward,” and “boss” describe what a room does. “Pillar hall,” “ring,” and “ambush cover” describe its physical layout. A future Damp Cave encounter and Ancient Crypt encounter may share the same semantic rules while using different tiles, props, hazards, and silhouettes.&lt;/p&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;wiki-section&quot; id=&quot;dg-explorer&quot;&gt;
+        &lt;h2&gt;Layout explorer&lt;/h2&gt;
+        &lt;p&gt;This structural preview follows the same cardinal growth, spanning-tree, loop, graph-diameter, and semantic assignment rules as the Unity planner. Its browser seed is illustrative rather than byte-for-byte compatible with C# &lt;code&gt;System.Random&lt;/code&gt;.&lt;/p&gt;
+
+        &lt;div class=&quot;viz-controls&quot;&gt;
+          &lt;label class=&quot;form-label&quot; for=&quot;dg-seed&quot;&gt;Illustrative seed
+            &lt;input class=&quot;form-control&quot; id=&quot;dg-seed&quot; type=&quot;number&quot; value=&quot;731245&quot;&gt;
+          &lt;/label&gt;
+          &lt;label class=&quot;form-label&quot; for=&quot;dg-room-count&quot;&gt;Room count: &lt;span id=&quot;dg-room-count-value&quot;&gt;11&lt;/span&gt;
+            &lt;input class=&quot;form-range&quot; id=&quot;dg-room-count&quot; type=&quot;range&quot; min=&quot;8&quot; max=&quot;12&quot; value=&quot;11&quot;&gt;
+          &lt;/label&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;viz-controls&quot;&gt;
+          &lt;label class=&quot;form-label&quot; for=&quot;dg-loop-budget&quot;&gt;Loop ceiling: &lt;span id=&quot;dg-loop-budget-value&quot;&gt;2&lt;/span&gt;
+            &lt;input class=&quot;form-range&quot; id=&quot;dg-loop-budget&quot; type=&quot;range&quot; min=&quot;0&quot; max=&quot;3&quot; value=&quot;2&quot;&gt;
+          &lt;/label&gt;
+          &lt;label class=&quot;form-label&quot; for=&quot;dg-inspect-room&quot;&gt;Inspect room
+            &lt;select class=&quot;form-select&quot; id=&quot;dg-inspect-room&quot;&gt;&lt;/select&gt;
+          &lt;/label&gt;
+          &lt;button class=&quot;btn btn-primary&quot; id=&quot;dg-generate&quot; type=&quot;button&quot;&gt;Generate schematic&lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;svg class=&quot;wiki-map&quot; id=&quot;dg-map&quot; viewBox=&quot;0 0 760 430&quot; role=&quot;img&quot; aria-labelledby=&quot;dg-map-title dg-map-desc&quot;&gt;
+          &lt;title id=&quot;dg-map-title&quot;&gt;Generated dungeon room graph&lt;/title&gt;
+          &lt;desc id=&quot;dg-map-desc&quot;&gt;A schematic showing connected rooms, the critical entrance-to-boss route, optional branches, and loop corridors.&lt;/desc&gt;
+          &lt;rect class=&quot;map-field&quot; x=&quot;0&quot; y=&quot;0&quot; width=&quot;760&quot; height=&quot;430&quot; rx=&quot;8&quot;&gt;&lt;/rect&gt;
+          &lt;g id=&quot;dg-corridor-layer&quot;&gt;&lt;/g&gt;
+          &lt;g id=&quot;dg-room-layer&quot;&gt;&lt;/g&gt;
+        &lt;/svg&gt;
+
+        &lt;div class=&quot;wiki-legend text-small&quot; aria-label=&quot;Map legend&quot;&gt;
+          &lt;span&gt;&lt;i class=&quot;wiki-swatch critical&quot;&gt;&lt;/i&gt;Critical route&lt;/span&gt;
+          &lt;span&gt;&lt;i class=&quot;wiki-swatch entrance&quot;&gt;&lt;/i&gt;Entrance&lt;/span&gt;
+          &lt;span&gt;&lt;i class=&quot;wiki-swatch branch&quot;&gt;&lt;/i&gt;Optional branch&lt;/span&gt;
+          &lt;span&gt;&lt;i class=&quot;wiki-swatch boss&quot;&gt;&lt;/i&gt;Boss&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;p class=&quot;text-small&quot; id=&quot;dg-selection-summary&quot; aria-live=&quot;polite&quot;&gt;&lt;/p&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;wiki-section&quot; id=&quot;dg-pipeline&quot;&gt;
+        &lt;h2&gt;Generation pipeline&lt;/h2&gt;
+        &lt;ol class=&quot;wiki-pipeline&quot;&gt;
+          &lt;li&gt;&lt;strong&gt;Sanitize settings&lt;/strong&gt;&lt;br&gt;&lt;span class=&quot;text-small&quot;&gt;Clamp rooms, spacing, jitter, width, and loop ceiling to safe ranges.&lt;/span&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;strong&gt;Grow cells&lt;/strong&gt;&lt;br&gt;&lt;span class=&quot;text-small&quot;&gt;Start at grid origin and repeatedly claim one unoccupied cardinal neighbor.&lt;/span&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;strong&gt;Shape rooms&lt;/strong&gt;&lt;br&gt;&lt;span class=&quot;text-small&quot;&gt;Assign variable rectangles and up to 2.5 units of positional jitter.&lt;/span&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;strong&gt;Connect all rooms&lt;/strong&gt;&lt;br&gt;&lt;span class=&quot;text-small&quot;&gt;Build a randomized spanning tree, guaranteeing one route to every node.&lt;/span&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;strong&gt;Add loops&lt;/strong&gt;&lt;br&gt;&lt;span class=&quot;text-small&quot;&gt;Select zero to the configured ceiling of adjacent non-tree connections.&lt;/span&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;strong&gt;Find endpoints&lt;/strong&gt;&lt;br&gt;&lt;span class=&quot;text-small&quot;&gt;Use two breadth-first searches to approximate the graph diameter.&lt;/span&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;strong&gt;Assign meaning&lt;/strong&gt;&lt;br&gt;&lt;span class=&quot;text-small&quot;&gt;Mark entrance, boss, antechamber, encounters, and optional side rooms.&lt;/span&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;strong&gt;Materialize&lt;/strong&gt;&lt;br&gt;&lt;span class=&quot;text-small&quot;&gt;Create Unity geometry, route waypoints, sockets, colliders, and raid placement.&lt;/span&gt;&lt;/li&gt;
+        &lt;/ol&gt;
+
+        &lt;h3&gt;Why the spanning tree comes before loops&lt;/h3&gt;
+        &lt;p&gt;A spanning tree provides the minimum set of connections needed for complete reachability: for &lt;em&gt;N&lt;/em&gt; rooms, it creates exactly &lt;em&gt;N − 1&lt;/em&gt; edges. Loop corridors are then optional additions. This makes connectivity an invariant instead of a lucky result, while still allowing layouts with alternate paths and less backtracking.&lt;/p&gt;
+
+        &lt;h3&gt;Why graph distance chooses the boss&lt;/h3&gt;
+        &lt;p&gt;The planner does not choose the geometrically farthest room by raw world coordinates. It chooses a distant endpoint by room-to-room traversal count. This better represents perceived dungeon depth: a boss can feel deep because the party passes through many spaces, even if the folded layout is compact on screen.&lt;/p&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;wiki-section&quot; id=&quot;dg-semantics&quot;&gt;
+        &lt;h2&gt;Room semantics&lt;/h2&gt;
+        &lt;p&gt;Purpose controls gameplay placement and progression. Template controls geometry. Theme controls presentation. Keeping these axes independent prevents visual content from becoming combat code.&lt;/p&gt;
+        &lt;div class=&quot;table-responsive&quot;&gt;
+          &lt;table class=&quot;table table-sm&quot;&gt;
+            &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Purpose&lt;/th&gt;&lt;th&gt;How it is selected&lt;/th&gt;&lt;th&gt;Current fixture behavior&lt;/th&gt;&lt;th&gt;Intended expansion&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+            &lt;tbody&gt;
+              &lt;tr&gt;&lt;td&gt;Entrance&lt;/td&gt;&lt;td&gt;First graph-diameter endpoint&lt;/td&gt;&lt;td&gt;Six-hunter formation socket&lt;/td&gt;&lt;td&gt;Gate portal, briefing, retreat boundary&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Encounter&lt;/td&gt;&lt;td&gt;Critical-path default&lt;/td&gt;&lt;td&gt;Eligible destination for the test goblin pod&lt;/td&gt;&lt;td&gt;Enemy budget, pod composition, hazards&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Transition&lt;/td&gt;&lt;td&gt;Room immediately before boss&lt;/td&gt;&lt;td&gt;Boss antechamber template&lt;/td&gt;&lt;td&gt;Regrouping, lock-in, dialogue, readiness check&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Boss&lt;/td&gt;&lt;td&gt;Second graph-diameter endpoint&lt;/td&gt;&lt;td&gt;Boss and exit sockets&lt;/td&gt;&lt;td&gt;Boss phases, boss chest, gate closure&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Reward&lt;/td&gt;&lt;td&gt;First repeating side-branch role&lt;/td&gt;&lt;td&gt;Reward marker&lt;/td&gt;&lt;td&gt;Chest tables, rarity, traps, ownership&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Resource&lt;/td&gt;&lt;td&gt;Second repeating side-branch role&lt;/td&gt;&lt;td&gt;Resource-shaped room&lt;/td&gt;&lt;td&gt;Mana crystals, extraction time, labor decisions&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Event&lt;/td&gt;&lt;td&gt;Third repeating side-branch role&lt;/td&gt;&lt;td&gt;Crossroads layout&lt;/td&gt;&lt;td&gt;Rescue, shrine, puzzle, survivor, hidden modifier&lt;/td&gt;&lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;wiki-section&quot; id=&quot;dg-catalogue&quot;&gt;
+        &lt;h2&gt;Room catalogue&lt;/h2&gt;
+        &lt;div class=&quot;wiki-note&quot;&gt;&lt;strong&gt;Provisional greybox library.&lt;/strong&gt; The current eleven templates prove selection, connectivity, sockets, and runtime materialization, but they are not the intended final room set. Several play too similarly. New mockups will become authored spatial templates after their doorway rules, combat purpose, hazards, and pathing requirements are reviewed.&lt;/div&gt;
+        &lt;div class=&quot;wiki-two-column&quot;&gt;
+          &lt;div&gt;
+            &lt;label class=&quot;form-label&quot; for=&quot;dg-template&quot;&gt;Spatial template
+              &lt;select class=&quot;form-select&quot; id=&quot;dg-template&quot;&gt;&lt;/select&gt;
+            &lt;/label&gt;
+            &lt;svg class=&quot;wiki-room-plan&quot; id=&quot;dg-room-plan&quot; viewBox=&quot;0 0 620 360&quot; role=&quot;img&quot; aria-labelledby=&quot;dg-plan-title dg-plan-desc&quot;&gt;
+              &lt;title id=&quot;dg-plan-title&quot;&gt;Selected room template plan&lt;/title&gt;
+              &lt;desc id=&quot;dg-plan-desc&quot;&gt;A top-down schematic of the selected room template, including door openings and solid obstacles.&lt;/desc&gt;
+              &lt;rect class=&quot;plan-field&quot; x=&quot;0&quot; y=&quot;0&quot; width=&quot;620&quot; height=&quot;360&quot; rx=&quot;8&quot;&gt;&lt;/rect&gt;
+              &lt;g id=&quot;dg-plan-theme&quot;&gt;&lt;/g&gt;
+              &lt;g id=&quot;dg-plan-room&quot;&gt;&lt;/g&gt;
+            &lt;/svg&gt;
+          &lt;/div&gt;
+          &lt;div&gt;
+            &lt;h3 id=&quot;dg-template-name&quot;&gt;Open arena&lt;/h3&gt;
+            &lt;dl class=&quot;wiki-detail-list&quot;&gt;
+              &lt;dt&gt;Geometry&lt;/dt&gt;&lt;dd id=&quot;dg-template-geometry&quot;&gt;&lt;/dd&gt;
+              &lt;dt&gt;Combat effect&lt;/dt&gt;&lt;dd id=&quot;dg-template-combat&quot;&gt;&lt;/dd&gt;
+              &lt;dt&gt;AI pressure&lt;/dt&gt;&lt;dd id=&quot;dg-template-ai&quot;&gt;&lt;/dd&gt;
+              &lt;dt&gt;Art opportunity&lt;/dt&gt;&lt;dd id=&quot;dg-template-art&quot;&gt;&lt;/dd&gt;
+              &lt;dt&gt;Current status&lt;/dt&gt;&lt;dd id=&quot;dg-template-status&quot;&gt;&lt;/dd&gt;
+            &lt;/dl&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;wiki-section&quot; id=&quot;dg-corridors&quot;&gt;
+        &lt;h2&gt;Corridors and navigation&lt;/h2&gt;
+        &lt;p&gt;Every graph edge becomes an orthogonal route. The planner begins at the center of the correct room side, creates one or two axis-aligned bends, and ends at the center of the destination side. The materializer builds floor segments along that route and cuts matching doorway gaps into room walls.&lt;/p&gt;
+        &lt;div class=&quot;wiki-note&quot;&gt;&lt;strong&gt;Known playtest defect.&lt;/strong&gt; Many generated connection tiles do not currently have continuous walls. Hunters can leave the navigable floor, become trapped outside the intended level, and fall behind the party. Graph connectivity is valid, but physical containment is not yet reliable.&lt;/div&gt;
+        &lt;div class=&quot;table-responsive&quot;&gt;
+          &lt;table class=&quot;table table-sm&quot;&gt;
+            &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Layer&lt;/th&gt;&lt;th&gt;Responsibility&lt;/th&gt;&lt;th&gt;Reason&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+            &lt;tbody&gt;
+              &lt;tr&gt;&lt;td&gt;Graph connection&lt;/td&gt;&lt;td&gt;Stores room adjacency&lt;/td&gt;&lt;td&gt;Supports abstract simulation and breadth-first route selection&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Ordered waypoints&lt;/td&gt;&lt;td&gt;Represents bends in traversal order&lt;/td&gt;&lt;td&gt;Stops parties from cutting diagonally through walls&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Physical corridor&lt;/td&gt;&lt;td&gt;Creates visible floor and collidable rails&lt;/td&gt;&lt;td&gt;Makes the route spatially meaningful in real-time combat&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Agent steering&lt;/td&gt;&lt;td&gt;Casts ahead and attempts stable left/right detours&lt;/td&gt;&lt;td&gt;Lets shared AI move around solid room cover&lt;/td&gt;&lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+        &lt;/div&gt;
+        &lt;p class=&quot;text-small&quot;&gt;The avoidance steering is implemented and compiler-validated, but its final autonomous smoke-test rerun remains outstanding. It is local collision avoidance, not a complete navigation mesh or grid-based pathfinder.&lt;/p&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;wiki-section&quot; id=&quot;dg-feedback&quot;&gt;
+        &lt;h2&gt;Playtest direction&lt;/h2&gt;
+        &lt;p&gt;This section records accepted experiential goals separately from proposed technical responses. It is not an implementation authorization.&lt;/p&gt;
+
+        &lt;h3&gt;Accepted experiential direction&lt;/h3&gt;
+        &lt;div class=&quot;table-responsive&quot;&gt;
+          &lt;table class=&quot;table table-sm&quot;&gt;
+            &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Area&lt;/th&gt;&lt;th&gt;Direction&lt;/th&gt;&lt;th&gt;What should be avoided&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+            &lt;tbody&gt;
+              &lt;tr&gt;&lt;td&gt;Party behavior&lt;/td&gt;&lt;td&gt;Hunters behave as individuals whose actions create situations that teammates notice and react to.&lt;/td&gt;&lt;td&gt;Instant formation snapping, perfectly synchronized decisions, and apparent knowledge of actions before they happen.&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Combat feel&lt;/td&gt;&lt;td&gt;A busy, grounded &lt;em&gt;Kenshi&lt;/em&gt;-like squad battle with magic, abilities, injuries, rescues, and role-driven choices layered into the melee.&lt;/td&gt;&lt;td&gt;A single group brain moving six bodies as one unit or a rigid rotation in which every action is pre-coordinated.&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Dungeon feel&lt;/td&gt;&lt;td&gt;&lt;em&gt;Enter the Gungeon&lt;/em&gt;-like variety: recognizable room silhouettes, authored tactical ideas, distinct tilesets, hazards, secrets, and memorable spatial landmarks inside a procedural run.&lt;/td&gt;&lt;td&gt;Rooms that differ only by moving a few blockers or recoloring the same combat rectangle.&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Generation strategy&lt;/td&gt;&lt;td&gt;Use procedural structure to arrange and contextualize strong authored room templates.&lt;/td&gt;&lt;td&gt;Unconstrained random geometry that produces nominal variety without meaningful gameplay differences.&lt;/td&gt;&lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+        &lt;/div&gt;
+
+        &lt;h3&gt;Proposed connection-tile contract&lt;/h3&gt;
+        &lt;ul&gt;
+          &lt;li&gt;Every visible corridor floor edge has a continuous matching wall or collider, except at an intentional doorway or authored opening.&lt;/li&gt;
+          &lt;li&gt;Straight, corner, T-junction, and cross-junction pieces share compatible doorway width, wall thickness, and collider overlap rules.&lt;/li&gt;
+          &lt;li&gt;Corridor endpoints overlap the destination room threshold far enough that neither rendering seams nor collision gaps can appear.&lt;/li&gt;
+          &lt;li&gt;Generated navigable bounds are queryable, allowing validation to detect any active hunter outside the legal level footprint.&lt;/li&gt;
+          &lt;li&gt;A hunter may fall behind because of injury, fear, combat, or a personal decision—not because the geometry leaked them out of the dungeon.&lt;/li&gt;
+        &lt;/ul&gt;
+
+        &lt;h3&gt;Proposed individual-agent model&lt;/h3&gt;
+        &lt;div class=&quot;table-responsive&quot;&gt;
+          &lt;table class=&quot;table table-sm&quot;&gt;
+            &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Layer&lt;/th&gt;&lt;th&gt;Owned by each hunter&lt;/th&gt;&lt;th&gt;Resulting behavior&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+            &lt;tbody&gt;
+              &lt;tr&gt;&lt;td&gt;Perception&lt;/td&gt;&lt;td&gt;Visible threats, recent sounds, remembered targets, observed ally states, and communicated information.&lt;/td&gt;&lt;td&gt;Agents react to what they plausibly know instead of reading shared omniscient state.&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Intent&lt;/td&gt;&lt;td&gt;Current goal, urgency, confidence, risk tolerance, role preference, and personal relationships.&lt;/td&gt;&lt;td&gt;Two hunters can interpret the same fight differently without becoming irrational.&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Action commitment&lt;/td&gt;&lt;td&gt;Chosen attack, spell, rescue, reposition, dodge, retreat, or regroup action.&lt;/td&gt;&lt;td&gt;Teammates can observe and respond after commitment or telegraphing rather than predicting it for free.&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Coordination&lt;/td&gt;&lt;td&gt;Leadership influence, shouted orders, formation preference, and local cohesion pressure.&lt;/td&gt;&lt;td&gt;Travel formation remains useful but soft; it can form gradually, bend around obstacles, and dissolve naturally on contact.&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Reaction timing&lt;/td&gt;&lt;td&gt;Awareness, ability, personality, latency, and current workload.&lt;/td&gt;&lt;td&gt;Responses are staggered and readable instead of six simultaneous state changes.&lt;/td&gt;&lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+        &lt;/div&gt;
+
+        &lt;h3&gt;Room distinctiveness rubric&lt;/h3&gt;
+        &lt;p&gt;A proposed room should differ meaningfully from existing rooms in at least three of the following dimensions before it enters the production catalogue.&lt;/p&gt;
+        &lt;ul&gt;
+          &lt;li&gt;&lt;strong&gt;Silhouette and topology:&lt;/strong&gt; shape, entrances, loops, internal lanes, elevation analogue, or subspaces.&lt;/li&gt;
+          &lt;li&gt;&lt;strong&gt;Combat question:&lt;/strong&gt; what decision the room repeatedly asks of melee, ranged, support, and mobility roles.&lt;/li&gt;
+          &lt;li&gt;&lt;strong&gt;Cover and sight lines:&lt;/strong&gt; how vision, projectiles, flanking, area effects, and retreats are changed.&lt;/li&gt;
+          &lt;li&gt;&lt;strong&gt;Hazards and interaction:&lt;/strong&gt; traps, destructibles, movable cover, terrain effects, secrets, or objectives.&lt;/li&gt;
+          &lt;li&gt;&lt;strong&gt;Encounter grammar:&lt;/strong&gt; spawn pockets, reinforcement routes, boss mechanics, civilian presence, or ambush logic.&lt;/li&gt;
+          &lt;li&gt;&lt;strong&gt;Theme identity:&lt;/strong&gt; landmark, material language, lighting, props, and readable environmental story.&lt;/li&gt;
+        &lt;/ul&gt;
+        &lt;div class=&quot;wiki-note&quot;&gt;&lt;strong&gt;Reference-image hold.&lt;/strong&gt; Final replacement room layouts are intentionally deferred until the supplied mock images can be assessed against doorway compatibility, traversal safety, combat purpose, agent pathing, and abstract-simulation needs.&lt;/div&gt;
+
+        &lt;h3&gt;Proposed acceptance checks&lt;/h3&gt;
+        &lt;div class=&quot;table-responsive&quot;&gt;
+          &lt;table class=&quot;table table-sm&quot;&gt;
+            &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Concern&lt;/th&gt;&lt;th&gt;Acceptance evidence&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+            &lt;tbody&gt;
+              &lt;tr&gt;&lt;td&gt;Connection containment&lt;/td&gt;&lt;td&gt;Automated geometry validation finds no unbounded floor edge or doorway mismatch across a broad deterministic seed set.&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Whole-party traversal&lt;/td&gt;&lt;td&gt;All six active hunters reach successive objectives across repeated seeded raids; no healthy hunter exits navigable bounds or remains more than one cleared room behind without an authored reason.&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Room variety&lt;/td&gt;&lt;td&gt;Each accepted template has a named tactical purpose and satisfies at least three distinctiveness dimensions.&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Agent individuality&lt;/td&gt;&lt;td&gt;Repeated runs produce plausible differences in approach, target choice, spacing, reaction timing, rescue behavior, and retreat decisions without breaking party goals.&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Coordination integrity&lt;/td&gt;&lt;td&gt;Agents can cooperate through perception and communication while remaining unable to know an ally&#x27;s private future action.&lt;/td&gt;&lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;wiki-section&quot; id=&quot;dg-art&quot;&gt;
+        &lt;h2&gt;Art direction workbench&lt;/h2&gt;
+        &lt;p&gt;The current level is a readable greybox. Theme selection below changes the visual design brief for the room plan; it does not imply that themed tiles or procedural dressing are already implemented in Unity.&lt;/p&gt;
+        &lt;div class=&quot;viz-controls&quot;&gt;
+          &lt;label class=&quot;form-label&quot; for=&quot;dg-theme&quot;&gt;Dungeon theme
+            &lt;select class=&quot;form-select&quot; id=&quot;dg-theme&quot;&gt;
+              &lt;option value=&quot;damp&quot;&gt;Damp cave&lt;/option&gt;
+              &lt;option value=&quot;crypt&quot;&gt;Ancient crypt&lt;/option&gt;
+              &lt;option value=&quot;temple&quot;&gt;Ruined temple&lt;/option&gt;
+              &lt;option value=&quot;frozen&quot;&gt;Frozen cavern&lt;/option&gt;
+            &lt;/select&gt;
+          &lt;/label&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;table-responsive&quot;&gt;
+          &lt;table class=&quot;table table-sm&quot;&gt;
+            &lt;tbody&gt;
+              &lt;tr&gt;&lt;th&gt;Primary silhouette&lt;/th&gt;&lt;td id=&quot;dg-theme-silhouette&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;th&gt;Floor language&lt;/th&gt;&lt;td id=&quot;dg-theme-floor&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;th&gt;Walls and boundaries&lt;/th&gt;&lt;td id=&quot;dg-theme-walls&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;th&gt;Landmarks&lt;/th&gt;&lt;td id=&quot;dg-theme-landmarks&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;th&gt;Readability rule&lt;/th&gt;&lt;td id=&quot;dg-theme-rule&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;th&gt;Possible mechanics&lt;/th&gt;&lt;td id=&quot;dg-theme-mechanics&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;wiki-status-line&quot;&gt;
+          &lt;button class=&quot;btn btn-primary&quot; id=&quot;dg-discuss&quot; type=&quot;button&quot;&gt;Copy selected change brief&lt;/button&gt;
+          &lt;span class=&quot;text-small text-muted&quot; id=&quot;dg-discuss-status&quot; aria-live=&quot;polite&quot;&gt;&lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;wiki-section&quot; id=&quot;dg-iteration&quot;&gt;
+        &lt;h2&gt;Iteration workflow&lt;/h2&gt;
+        &lt;p&gt;This page works best as a living design contract. Changes should move from a proposed player-facing outcome to an accepted design, then to implementation and verification. The wiki should explain the intended behavior before the Unity project is altered.&lt;/p&gt;
+
+        &lt;div class=&quot;wiki-state-key&quot; aria-label=&quot;Design states&quot;&gt;
+          &lt;span class=&quot;viz-badge&quot;&gt;Current&lt;/span&gt;
+          &lt;span class=&quot;viz-badge&quot;&gt;Proposed&lt;/span&gt;
+          &lt;span class=&quot;viz-badge&quot;&gt;Accepted&lt;/span&gt;
+          &lt;span class=&quot;viz-badge&quot;&gt;Implemented&lt;/span&gt;
+          &lt;span class=&quot;viz-badge&quot;&gt;Verified&lt;/span&gt;
+          &lt;span class=&quot;viz-badge&quot;&gt;Deferred&lt;/span&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;table-responsive&quot;&gt;
+          &lt;table class=&quot;table table-sm&quot;&gt;
+            &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Step&lt;/th&gt;&lt;th&gt;Your input&lt;/th&gt;&lt;th&gt;Wiki update&lt;/th&gt;&lt;th&gt;Unity work&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+            &lt;tbody&gt;
+              &lt;tr&gt;&lt;td&gt;1. Focus&lt;/td&gt;&lt;td&gt;Name one system, room family, theme, or player experience.&lt;/td&gt;&lt;td&gt;The affected article section is identified.&lt;/td&gt;&lt;td&gt;None.&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;2. Intent&lt;/td&gt;&lt;td&gt;Describe what should feel different and any non-negotiable constraints.&lt;/td&gt;&lt;td&gt;Current behavior, proposed behavior, tradeoffs, and open questions are documented.&lt;/td&gt;&lt;td&gt;None.&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;3. Review&lt;/td&gt;&lt;td&gt;Mark each proposal &lt;strong&gt;approve&lt;/strong&gt;, &lt;strong&gt;revise&lt;/strong&gt;, or &lt;strong&gt;defer&lt;/strong&gt;.&lt;/td&gt;&lt;td&gt;Accepted decisions and rejected alternatives are recorded.&lt;/td&gt;&lt;td&gt;None.&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;4. Build&lt;/td&gt;&lt;td&gt;Say &lt;strong&gt;implement the accepted change set&lt;/strong&gt;.&lt;/td&gt;&lt;td&gt;Status moves from Accepted to Implemented.&lt;/td&gt;&lt;td&gt;The smallest coherent production change is made.&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;5. Verify&lt;/td&gt;&lt;td&gt;Play the test and report observable problems.&lt;/td&gt;&lt;td&gt;Acceptance results and remaining risks are recorded.&lt;/td&gt;&lt;td&gt;Tests, smoke checks, and focused corrections are completed.&lt;/td&gt;&lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;wiki-edit-box&quot;&gt;
+          &lt;h3&gt;Recommended change request&lt;/h3&gt;
+          &lt;pre&gt;&lt;code&gt;Wiki update: Dungeon generation / [section]
+Desired experience: [what the player should feel or notice]
+Keep: [parts of the current design that already work]
+Change: [specific behavior, art language, or rule]
+Constraints: [performance, production, AI, persistence, or scope]
+Decision requested: [options you want compared, or a direct proposal]&lt;/code&gt;&lt;/pre&gt;
+          &lt;p class=&quot;text-small&quot;&gt;For visual direction, references or rough sketches are welcome. For systemic changes, describe one example dungeon run from entrance to boss. Concrete examples expose hidden assumptions faster than isolated feature lists.&lt;/p&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;wiki-section&quot; id=&quot;dg-lifecycle&quot;&gt;
+        &lt;h2&gt;Seeds, lifecycle, and persistence&lt;/h2&gt;
+        &lt;div class=&quot;table-responsive&quot;&gt;
+          &lt;table class=&quot;table table-sm&quot;&gt;
+            &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Context&lt;/th&gt;&lt;th&gt;Seed source&lt;/th&gt;&lt;th&gt;Expected behavior&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+            &lt;tbody&gt;
+              &lt;tr&gt;&lt;td&gt;Saved editor preview&lt;/td&gt;&lt;td&gt;&lt;code&gt;731245&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Visible outside Play Mode and regenerated by the setup tool&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Standalone Demo Play Mode&lt;/td&gt;&lt;td&gt;Fresh runtime seed&lt;/td&gt;&lt;td&gt;Produces a new testing layout each run&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Campaign gate&lt;/td&gt;&lt;td&gt;&lt;code&gt;GateInstanceState.mapSeed&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Reconstructs the same dungeon after save, reload, or observation transition&lt;/td&gt;&lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+        &lt;/div&gt;
+
+        &lt;h3&gt;What should be persisted&lt;/h3&gt;
+        &lt;p&gt;&lt;strong&gt;Static structure&lt;/strong&gt; should be reproducible from a map seed, generator version, and content definitions. &lt;strong&gt;Sparse mutations&lt;/strong&gt; should be saved separately: opened chests, depleted resources, defeated pods, triggered traps, destroyed props, discovered secrets, and exact participant state.&lt;/p&gt;
+
+        &lt;h3&gt;Rendered and abstract raids&lt;/h3&gt;
+        &lt;p&gt;The plain layout plan owns no scene objects. That boundary is important for the game vision: an off-screen raid can reason about a room graph, encounter ordering, and resource locations without rendering floors or colliders. When observed, the same seed and encounter state can materialize a playable dungeon view.&lt;/p&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;wiki-section&quot; id=&quot;dg-status&quot;&gt;
+        &lt;h2&gt;Implementation status&lt;/h2&gt;
+        &lt;div class=&quot;table-responsive&quot;&gt;
+          &lt;table class=&quot;table table-sm&quot;&gt;
+            &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Feature&lt;/th&gt;&lt;th&gt;Status&lt;/th&gt;&lt;th&gt;Notes&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+            &lt;tbody&gt;
+              &lt;tr&gt;&lt;td&gt;Deterministic room graph&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;viz-badge&quot;&gt;Implemented&lt;/span&gt;&lt;/td&gt;&lt;td&gt;Same-seed structural validation passes&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;8–12 varied rooms&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;viz-badge&quot;&gt;Implemented&lt;/span&gt;&lt;/td&gt;&lt;td&gt;Variable rectangles, jitter, templates, branches, and loops&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Visible editor preview&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;viz-badge&quot;&gt;Implemented&lt;/span&gt;&lt;/td&gt;&lt;td&gt;Eleven-room seed 731245 preview is serialized in the scene&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Bent corridor traversal&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;viz-badge&quot;&gt;Implemented&lt;/span&gt;&lt;/td&gt;&lt;td&gt;Connections store ordered waypoints in both directions&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Connection tile wall continuity&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;viz-badge&quot;&gt;Known defect&lt;/span&gt;&lt;/td&gt;&lt;td&gt;Missing walls can let hunters leave the level and become stranded&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Solid-cover avoidance&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;viz-badge&quot;&gt;Verification pending&lt;/span&gt;&lt;/td&gt;&lt;td&gt;Compiler passes; autonomous Play Mode rerun remains&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Individual hunter combat autonomy&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;viz-badge&quot;&gt;Direction accepted&lt;/span&gt;&lt;/td&gt;&lt;td&gt;Per-agent perception, intent, commitment, communication, and reaction timing are not yet implemented&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Production room template library&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;viz-badge&quot;&gt;Awaiting references&lt;/span&gt;&lt;/td&gt;&lt;td&gt;Current greyboxes remain provisional until mock images are reviewed&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Theme tile sets&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;viz-badge&quot;&gt;Design only&lt;/span&gt;&lt;/td&gt;&lt;td&gt;Theme art direction is not yet a data-driven Unity asset&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Full encounter population&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;viz-badge&quot;&gt;Future&lt;/span&gt;&lt;/td&gt;&lt;td&gt;Current fixture relocates one six-goblin pod into a deep encounter&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Boss generation&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;viz-badge&quot;&gt;Future&lt;/span&gt;&lt;/td&gt;&lt;td&gt;Boss room and socket exist; boss content generation does not&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Secrets, locks, and puzzles&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;viz-badge&quot;&gt;Future&lt;/span&gt;&lt;/td&gt;&lt;td&gt;Not represented in the current graph grammar&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;Generator-version migration&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;viz-badge&quot;&gt;Future&lt;/span&gt;&lt;/td&gt;&lt;td&gt;Needed before released saves must reproduce legacy algorithms&lt;/td&gt;&lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;wiki-section wiki-code-map&quot; id=&quot;dg-code&quot;&gt;
+        &lt;h2&gt;Code map&lt;/h2&gt;
+        &lt;div class=&quot;table-responsive&quot;&gt;
+          &lt;table class=&quot;table table-sm&quot;&gt;
+            &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Type&lt;/th&gt;&lt;th&gt;Authority&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+            &lt;tbody&gt;
+              &lt;tr&gt;&lt;td&gt;&lt;code&gt;DungeonRoomFirstPlanner2D&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Pure deterministic graph and layout planning&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;&lt;code&gt;DungeonRoomFirstPlan2D&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Rooms, purposes, templates, connections, and corridor waypoints&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;&lt;code&gt;DungeonRoomFirstGenerator2D&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Unity scene materialization and raid-fixture placement&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;&lt;code&gt;RaidRoom2D&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Room bounds, identity, sequence, and semantic purpose&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;&lt;code&gt;RaidRoomConnection2D&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Adjacency plus ordered traversal waypoints&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;&lt;code&gt;RaidSpawnMarker2D&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Theme-independent content sockets&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;&lt;code&gt;DungeonRaidDirector2D&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Room-graph routing and real-time raid orchestration&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;&lt;code&gt;RaidAgent2D&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Physics movement, collision avoidance, combat state, and presentation&lt;/td&gt;&lt;/tr&gt;
+              &lt;tr&gt;&lt;td&gt;&lt;code&gt;DemoDungeonRaidBuilder&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Saved preview setup and structural validation&lt;/td&gt;&lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+        &lt;/div&gt;
+        &lt;p class=&quot;wiki-footnote text-small text-muted&quot;&gt;Article scope: the current 2D Demo Dungeon implementation and its intended integration boundary. Theme-specific art, content budgets, gate modifiers, and full campaign persistence remain design surfaces rather than completed systems.&lt;/p&gt;
+      &lt;/section&gt;
+    &lt;/article&gt;
+  &lt;/div&gt;
+
+  &lt;script&gt;
+    (() =&gt; {
+      const root = document.getElementById(&#x27;turtle-dungeon-wiki&#x27;);
+      const seedInput = root.querySelector(&#x27;#dg-seed&#x27;);
+      const roomRange = root.querySelector(&#x27;#dg-room-count&#x27;);
+      const roomValue = root.querySelector(&#x27;#dg-room-count-value&#x27;);
+      const loopRange = root.querySelector(&#x27;#dg-loop-budget&#x27;);
+      const loopValue = root.querySelector(&#x27;#dg-loop-budget-value&#x27;);
+      const inspectSelect = root.querySelector(&#x27;#dg-inspect-room&#x27;);
+      const generateButton = root.querySelector(&#x27;#dg-generate&#x27;);
+      const corridorLayer = root.querySelector(&#x27;#dg-corridor-layer&#x27;);
+      const roomLayer = root.querySelector(&#x27;#dg-room-layer&#x27;);
+      const selectionSummary = root.querySelector(&#x27;#dg-selection-summary&#x27;);
+      const templateSelect = root.querySelector(&#x27;#dg-template&#x27;);
+      const themeSelect = root.querySelector(&#x27;#dg-theme&#x27;);
+      const planTheme = root.querySelector(&#x27;#dg-plan-theme&#x27;);
+      const planRoom = root.querySelector(&#x27;#dg-plan-room&#x27;);
+      const discussButton = root.querySelector(&#x27;#dg-discuss&#x27;);
+      const discussStatus = root.querySelector(&#x27;#dg-discuss-status&#x27;);
+      const searchForm = root.querySelector(&#x27;#dg-search-form&#x27;);
+      const searchInput = root.querySelector(&#x27;#dg-search-input&#x27;);
+      let currentPlan = null;
+      let selectedRoomId = 0;
+
+      const directions = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+      const encounterTemplates = [&#x27;OpenArena&#x27;, &#x27;PillarHall&#x27;, &#x27;SplitHall&#x27;, &#x27;Crossroads&#x27;, &#x27;Ring&#x27;, &#x27;AmbushCover&#x27;];
+      const purposeShort = { Entrance: &#x27;ENT&#x27;, Encounter: &#x27;ENC&#x27;, Transition: &#x27;ANTE&#x27;, Boss: &#x27;BOSS&#x27;, Reward: &#x27;LOOT&#x27;, Resource: &#x27;RES&#x27;, Event: &#x27;EVENT&#x27; };
+
+      const templateData = {
+        OpenArena: {
+          name: &#x27;Open arena&#x27;, geometry: &#x27;An unobstructed rectangular combat floor.&#x27;,
+          combat: &#x27;Establishes baseline spacing, ranges, telegraphs, and area damage.&#x27;,
+          ai: &#x27;Lowest navigation complexity; exposes poor target selection immediately.&#x27;,
+          art: &#x27;Large central landmark, floor motif, shallow elevation changes, or ritual geometry.&#x27;,
+          status: &#x27;Implemented and used by entrance or encounter rooms.&#x27;, obstacles: []
+        },
+        PillarHall: {
+          name: &#x27;Pillar hall&#x27;, geometry: &#x27;Four corner-offset square pillars with an open center and multiple lanes.&#x27;,
+          combat: &#x27;Breaks line of sight and creates flanks without forming a maze.&#x27;,
+          ai: &#x27;Tests local avoidance, ranged repositioning, and pursuit around solid cover.&#x27;,
+          art: &#x27;Columns, cave stacks, giant roots, statues, ice spires, or ruined supports.&#x27;,
+          status: &#x27;Implemented as solid collidable cover.&#x27;,
+          obstacles: [[-0.46,-0.43,0.13,0.18],[0.46,-0.43,0.13,0.18],[-0.46,0.43,0.13,0.18],[0.46,0.43,0.13,0.18]]
+        },
+        SplitHall: {
+          name: &#x27;Split hall&#x27;, geometry: &#x27;Two short horizontal dividers offset above and below the center.&#x27;,
+          combat: &#x27;Splits pressure into lanes while preserving cross-room visibility.&#x27;,
+          ai: &#x27;Forces movement around partial barriers and can create temporary front lines.&#x27;,
+          art: &#x27;Collapsed walls, broken shelves, rib bones, barricades, or altar fragments.&#x27;,
+          status: &#x27;Implemented as solid collidable cover.&#x27;,
+          obstacles: [[0,-0.34,0.36,0.10],[0,0.34,0.36,0.10]]
+        },
+        Crossroads: {
+          name: &#x27;Crossroads&#x27;, geometry: &#x27;Two diagonal corner cover blocks with a readable central crossing.&#x27;,
+          combat: &#x27;Creates opposing safe corners and asymmetric approach choices.&#x27;,
+          ai: &#x27;Tests whether groups bunch at one opening or distribute across available lanes.&#x27;,
+          art: &#x27;Junction shrine, collapsed intersection, branching roots, or cracked ice plates.&#x27;,
+          status: &#x27;Implemented for encounter and event rooms.&#x27;,
+          obstacles: [[-0.48,-0.40,0.20,0.18],[0.48,0.40,0.20,0.18]]
+        },
+        Ring: {
+          name: &#x27;Ring&#x27;, geometry: &#x27;Four separated blockers around an open center.&#x27;,
+          combat: &#x27;Supports circular kiting, center-control abilities, and alternating sight lines.&#x27;,
+          ai: &#x27;Challenges pursuit without denying a direct route through the middle.&#x27;,
+          art: &#x27;Runestones, ritual pylons, mushroom ring, frozen shards, or broken monuments.&#x27;,
+          status: &#x27;Implemented as four solid cover elements.&#x27;,
+          obstacles: [[0,-0.48,0.28,0.09],[0,0.48,0.28,0.09],[-0.48,0,0.09,0.28],[0.48,0,0.09,0.28]]
+        },
+        AmbushCover: {
+          name: &#x27;Ambush cover&#x27;, geometry: &#x27;Two staggered horizontal cover pieces on opposing sides.&#x27;,
+          combat: &#x27;Creates concealed opening positions and a diagonal pressure lane.&#x27;,
+          ai: &#x27;Tests initial target acquisition and lateral movement after contact.&#x27;,
+          art: &#x27;Crates, rubble, webs, roots, sarcophagi, or snowdrifts hiding enemy silhouettes.&#x27;,
+          status: &#x27;Implemented as an encounter template.&#x27;,
+          obstacles: [[-0.40,-0.25,0.28,0.10],[0.40,0.25,0.28,0.10]]
+        },
+        RewardCache: {
+          name: &#x27;Reward cache&#x27;, geometry: &#x27;Two small racks or blockers toward one side with a clear reward center.&#x27;,
+          combat: &#x27;Primarily a pacing and reward space; may later support traps or thieves.&#x27;,
+          ai: &#x27;Low pressure unless occupied by an ambush or contested-loot event.&#x27;,
+          art: &#x27;Supply shelves, treasure piles, cocoons, offerings, or abandoned expedition gear.&#x27;,
+          status: &#x27;Implemented geometrically; real loot-table population is future work.&#x27;,
+          obstacles: [[-0.42,-0.42,0.20,0.09],[0.42,-0.42,0.20,0.09]]
+        },
+        ResourcePocket: {
+          name: &#x27;Resource pocket&#x27;, geometry: &#x27;Two narrow resource formations on opposing diagonals.&#x27;,
+          combat: &#x27;Introduces valuable side objectives and potential extraction exposure.&#x27;,
+          ai: &#x27;Future decisions must weigh time, danger, carrying capacity, and party goals.&#x27;,
+          art: &#x27;Mana crystals, rare ore, fungi, relic fragments, or frozen essence.&#x27;,
+          status: &#x27;Implemented geometrically; extraction gameplay is future work.&#x27;,
+          obstacles: [[-0.43,-0.40,0.09,0.24],[0.43,0.40,0.09,0.24]]
+        },
+        BossAntechamber: {
+          name: &#x27;Boss antechamber&#x27;, geometry: &#x27;A compact room with one restrained central-side plinth.&#x27;,
+          combat: &#x27;Creates a breath before commitment and a place to regroup or prepare.&#x27;,
+          ai: &#x27;Future strike teams can heal, wait for cooldowns, or decide whether to retreat.&#x27;,
+          art: &#x27;Sealed gate, warning murals, discarded bodies, boss trophies, or pressure doors.&#x27;,
+          status: &#x27;Implemented and assigned immediately before the boss.&#x27;,
+          obstacles: [[0,-0.42,0.24,0.09]]
+        },
+        BossPillars: {
+          name: &#x27;Boss arena — pillars&#x27;, geometry: &#x27;A large arena with four distant pylons and an open telegraph center.&#x27;,
+          combat: &#x27;Allows line-of-sight breaks, add spawns, destructible objectives, or phase anchors.&#x27;,
+          ai: &#x27;Supports complex repositioning while preserving a readable central boss silhouette.&#x27;,
+          art: &#x27;Massive columns, ritual anchors, crystal conduits, braziers, or arena statues.&#x27;,
+          status: &#x27;Implemented geometrically; boss behavior is not yet generated.&#x27;,
+          obstacles: [[-0.58,-0.48,0.13,0.17],[0.58,-0.48,0.13,0.17],[-0.58,0.48,0.13,0.17],[0.58,0.48,0.13,0.17]]
+        },
+        BossOpen: {
+          name: &#x27;Boss arena — open&#x27;, geometry: &#x27;A large clear arena prioritizing telegraphs and movement freedom.&#x27;,
+          combat: &#x27;Best for mobile bosses, projectile patterns, summons, and large persistent hazards.&#x27;,
+          ai: &#x27;Navigation is simple; challenge must come from boss decisions and attack geometry.&#x27;,
+          art: &#x27;Monumental backdrop, floor sigil, throne, pit, portal, or environmental vista.&#x27;,
+          status: &#x27;Implemented geometrically; boss behavior is not yet generated.&#x27;, obstacles: []
+        }
+      };
+
+      const themeData = {
+        damp: {
+          name: &#x27;Damp cave&#x27;, silhouette: &#x27;Irregular chambers, eroded edges, low ceilings, and occasional broad natural caverns.&#x27;,
+          floor: &#x27;Wet stone, mud, moss seams, shallow pools, and worn traversal paths.&#x27;,
+          walls: &#x27;Rock shelves, roots, stalagmites, collapsed passages, and darkness beyond the playable edge.&#x27;,
+          landmarks: &#x27;Bioluminescent fungi, mana crystals, underground water, webs, and abandoned mining gear.&#x27;,
+          rule: &#x27;Wet reflections and organic clutter must never hide doorways, hurtboxes, or hostile telegraphs.&#x27;,
+          mechanics: &#x27;Slippery pools, poison spores, web slows, cave-ins, darkness, and extractable crystals.&#x27;
+        },
+        crypt: {
+          name: &#x27;Ancient crypt&#x27;, silhouette: &#x27;Axial rooms, repeated bays, ceremonial chambers, and strongly framed thresholds.&#x27;,
+          floor: &#x27;Cold cut stone, burial inlays, worn processional paths, and cracked grave slabs.&#x27;,
+          walls: &#x27;Masonry, alcoves, sealed tombs, columns, iron gates, and collapsed vaults.&#x27;,
+          landmarks: &#x27;Sarcophagi, candles, funerary statues, chained doors, relic shrines, and ossuaries.&#x27;,
+          rule: &#x27;Symmetry should orient the player while broken sections and enemy placement supply asymmetry.&#x27;,
+          mechanics: &#x27;Sealed coffins, undead awakenings, curses, pressure plates, relic theft, and locked wings.&#x27;
+        },
+        temple: {
+          name: &#x27;Ruined temple&#x27;, silhouette: &#x27;Courtyards, broken colonnades, large ritual geometry, and partially open boundaries.&#x27;,
+          floor: &#x27;Sand over carved stone, fractured mosaics, overgrowth, and ceremonial platforms.&#x27;,
+          walls: &#x27;Collapsed blocks, surviving columns, hanging banners, roots, and open exterior gaps.&#x27;,
+          landmarks: &#x27;Altars, statues, bells, banners, sun shafts, offerings, and ruined guardian constructs.&#x27;,
+          rule: &#x27;Monumental art may dominate the background but combat lanes and exits remain visually quiet.&#x27;,
+          mechanics: &#x27;Guardian activation, sunlight zones, ritual interruption, destructible columns, and shrine choices.&#x27;
+        },
+        frozen: {
+          name: &#x27;Frozen cavern&#x27;, silhouette: &#x27;Sharp ice shelves, narrow crevasses, broad reflective chambers, and crystalline spikes.&#x27;,
+          floor: &#x27;Packed snow, translucent ice, frost fractures, and wind-polished traversal lines.&#x27;,
+          walls: &#x27;Blue ice, stone inclusions, snowbanks, icicles, and deep unwalkable fissures.&#x27;,
+          landmarks: &#x27;Frozen creatures, aurora light, ice crystals, buried ruins, and geothermal vents.&#x27;,
+          rule: &#x27;Bright floors need dark silhouettes and restrained bloom so projectiles remain readable.&#x27;,
+          mechanics: &#x27;Momentum changes, brittle floors, freezing buildup, sliding hazards, and heat-safe zones.&#x27;
+        }
+      };
+
+      function mulberry32(seed) {
+        let value = seed &gt;&gt;&gt; 0;
+        return () =&gt; {
+          value += 0x6D2B79F5;
+          let t = value;
+          t = Math.imul(t ^ (t &gt;&gt;&gt; 15), t | 1);
+          t ^= t + Math.imul(t ^ (t &gt;&gt;&gt; 7), t | 61);
+          return ((t ^ (t &gt;&gt;&gt; 14)) &gt;&gt;&gt; 0) / 4294967296;
+        };
+      }
+
+      function randInt(random, minimum, maximum) {
+        return minimum + Math.floor(random() * (maximum - minimum + 1));
+      }
+
+      function randomEven(random, minimum, maximum) {
+        const value = randInt(random, minimum, maximum);
+        return value % 2 === 0 ? value : value + 1;
+      }
+
+      function key(x, y) { return `${x},${y}`; }
+      function edgeKey(a, b) { return a &lt; b ? `${a}-${b}` : `${b}-${a}`; }
+
+      function buildAdjacency(roomCount, edges) {
+        const adjacency = Array.from({ length: roomCount }, () =&gt; []);
+        edges.forEach(edge =&gt; {
+          adjacency[edge.a].push(edge.b);
+          adjacency[edge.b].push(edge.a);
+        });
+        adjacency.forEach(neighbors =&gt; neighbors.sort((a, b) =&gt; a - b));
+        return adjacency;
+      }
+
+      function distancesFrom(start, adjacency) {
+        const distances = new Map([[start, 0]]);
+        const queue = [start];
+        for (let index = 0; index &lt; queue.length; index++) {
+          const current = queue[index];
+          adjacency[current].forEach(neighbor =&gt; {
+            if (distances.has(neighbor)) return;
+            distances.set(neighbor, distances.get(current) + 1);
+            queue.push(neighbor);
+          });
+        }
+        return distances;
+      }
+
+      function farthestFrom(start, adjacency) {
+        return [...distancesFrom(start, adjacency).entries()]
+          .sort((left, right) =&gt; right[1] - left[1] || left[0] - right[0])[0][0];
+      }
+
+      function findPath(start, destination, adjacency) {
+        const previous = new Map();
+        const visited = new Set([start]);
+        const queue = [start];
+        for (let index = 0; index &lt; queue.length; index++) {
+          const current = queue[index];
+          if (current === destination) break;
+          adjacency[current].forEach(neighbor =&gt; {
+            if (visited.has(neighbor)) return;
+            visited.add(neighbor);
+            previous.set(neighbor, current);
+            queue.push(neighbor);
+          });
+        }
+        const path = [destination];
+        while (path[path.length - 1] !== start) path.push(previous.get(path[path.length - 1]));
+        return path.reverse();
+      }
+
+      function generatePlan(seed, targetCount, maximumLoops) {
+        const random = mulberry32(seed);
+        const cells = [{ x: 0, y: 0 }];
+        const occupied = new Set([key(0, 0)]);
+        while (cells.length &lt; targetCount) {
+          const candidateMap = new Map();
+          cells.forEach(cell =&gt; directions.forEach(direction =&gt; {
+            const candidate = { x: cell.x + direction[0], y: cell.y + direction[1] };
+            const candidateKey = key(candidate.x, candidate.y);
+            if (!occupied.has(candidateKey)) candidateMap.set(candidateKey, candidate);
+          }));
+          const candidates = [...candidateMap.values()].sort((a, b) =&gt;
+            (Math.abs(a.x) + Math.abs(a.y)) - (Math.abs(b.x) + Math.abs(b.y)) || a.x - b.x || a.y - b.y);
+          const picked = candidates[randInt(random, 0, candidates.length - 1)];
+          occupied.add(key(picked.x, picked.y));
+          cells.push(picked);
+        }
+
+        const rooms = cells.map((cell, id) =&gt; ({
+          id, cell, x: cell.x * 29 + (random() * 5 - 2.5), y: cell.y * 23 + (random() * 5 - 2.5),
+          width: randomEven(random, 15, 23), height: randomEven(random, 13, 19),
+          sequence: 0, purpose: &#x27;Encounter&#x27;, template: encounterTemplates[randInt(random, 0, encounterTemplates.length - 1)]
+        }));
+        const byCell = new Map(rooms.map(room =&gt; [key(room.cell.x, room.cell.y), room.id]));
+        const connected = new Set([0]);
+        const edges = [];
+        const usedEdges = new Set();
+        while (connected.size &lt; rooms.length) {
+          const candidates = [];
+          [...connected].sort((a, b) =&gt; a - b).forEach(roomId =&gt; {
+            const cell = rooms[roomId].cell;
+            directions.forEach(direction =&gt; {
+              const neighbor = byCell.get(key(cell.x + direction[0], cell.y + direction[1]));
+              if (neighbor === undefined || connected.has(neighbor)) return;
+              candidates.push({ a: Math.min(roomId, neighbor), b: Math.max(roomId, neighbor) });
+            });
+          });
+          const picked = candidates[randInt(random, 0, candidates.length - 1)];
+          const pickedKey = edgeKey(picked.a, picked.b);
+          if (!usedEdges.has(pickedKey)) {
+            edges.push(picked);
+            usedEdges.add(pickedKey);
+          }
+          connected.add(connected.has(picked.a) ? picked.b : picked.a);
+        }
+
+        const loopCandidates = [];
+        rooms.forEach(room =&gt; directions.slice(0, 2).forEach(direction =&gt; {
+          const neighbor = byCell.get(key(room.cell.x + direction[0], room.cell.y + direction[1]));
+          if (neighbor === undefined) return;
+          const candidate = { a: Math.min(room.id, neighbor), b: Math.max(room.id, neighbor) };
+          if (!usedEdges.has(edgeKey(candidate.a, candidate.b))) loopCandidates.push(candidate);
+        }));
+        const loopCount = loopCandidates.length === 0 ? 0 : randInt(random, 0, Math.min(maximumLoops, loopCandidates.length));
+        for (let index = 0; index &lt; loopCount; index++) {
+          const pickedIndex = randInt(random, 0, loopCandidates.length - 1);
+          const picked = loopCandidates.splice(pickedIndex, 1)[0];
+          edges.push(picked);
+          usedEdges.add(edgeKey(picked.a, picked.b));
+        }
+
+        const adjacency = buildAdjacency(rooms.length, edges);
+        const entrance = farthestFrom(0, adjacency);
+        const boss = farthestFrom(entrance, adjacency);
+        const criticalPath = findPath(entrance, boss, adjacency);
+        const pathSet = new Set(criticalPath);
+        const distanceMap = distancesFrom(entrance, adjacency);
+        rooms.forEach(room =&gt; room.sequence = distanceMap.get(room.id));
+        rooms[entrance].purpose = &#x27;Entrance&#x27;;
+        rooms[entrance].template = &#x27;OpenArena&#x27;;
+        rooms[entrance].width = 19; rooms[entrance].height = 16;
+        rooms[boss].purpose = &#x27;Boss&#x27;;
+        rooms[boss].template = random() &lt; 0.5 ? &#x27;BossPillars&#x27; : &#x27;BossOpen&#x27;;
+        rooms[boss].width = 28; rooms[boss].height = 23;
+        if (criticalPath.length &gt;= 3) {
+          const transition = rooms[criticalPath[criticalPath.length - 2]];
+          transition.purpose = &#x27;Transition&#x27;; transition.template = &#x27;BossAntechamber&#x27;;
+          transition.width = 15; transition.height = 13;
+        }
+        let branchIndex = 0;
+        rooms.filter(room =&gt; !pathSet.has(room.id)).sort((a, b) =&gt; a.id - b.id).forEach(room =&gt; {
+          const role = branchIndex++ % 3;
+          if (role === 0) { room.purpose = &#x27;Reward&#x27;; room.template = &#x27;RewardCache&#x27;; }
+          else if (role === 1) { room.purpose = &#x27;Resource&#x27;; room.template = &#x27;ResourcePocket&#x27;; }
+          else { room.purpose = &#x27;Event&#x27;; room.template = &#x27;Crossroads&#x27;; }
+        });
+        const offsetX = rooms[entrance].x;
+        const offsetY = rooms[entrance].y;
+        rooms.forEach(room =&gt; { room.x -= offsetX; room.y -= offsetY; });
+        edges.forEach(edge =&gt; {
+          const from = rooms[edge.a];
+          const to = rooms[edge.b];
+          const horizontal = Math.abs(to.x - from.x) &gt;= Math.abs(to.y - from.y);
+          const alternate = random() &lt; 0.5;
+          if (horizontal) {
+            const sign = Math.sign(to.x - from.x) || 1;
+            const start = { x: from.x + sign * from.width / 2, y: from.y };
+            const end = { x: to.x - sign * to.width / 2, y: to.y };
+            const bend = start.x + (end.x - start.x) * (alternate ? 0.35 : 0.65);
+            edge.points = [start, { x: bend, y: start.y }, { x: bend, y: end.y }, end];
+          } else {
+            const sign = Math.sign(to.y - from.y) || 1;
+            const start = { x: from.x, y: from.y + sign * from.height / 2 };
+            const end = { x: to.x, y: to.y - sign * to.height / 2 };
+            const bend = start.y + (end.y - start.y) * (alternate ? 0.35 : 0.65);
+            edge.points = [start, { x: start.x, y: bend }, { x: end.x, y: bend }, end];
+          }
+        });
+        const criticalEdges = new Set();
+        for (let index = 0; index &lt; criticalPath.length - 1; index++) criticalEdges.add(edgeKey(criticalPath[index], criticalPath[index + 1]));
+        return { seed, rooms, edges, entrance, boss, criticalPath, criticalEdges, loopCount };
+      }
+
+      function renderPlan() {
+        const seed = Number.parseInt(seedInput.value, 10) || 0;
+        const roomCount = Number.parseInt(roomRange.value, 10);
+        const loopBudget = Number.parseInt(loopRange.value, 10);
+        roomValue.textContent = String(roomCount);
+        loopValue.textContent = String(loopBudget);
+        currentPlan = generatePlan(seed, roomCount, loopBudget);
+        if (!currentPlan.rooms.some(room =&gt; room.id === selectedRoomId)) selectedRoomId = currentPlan.entrance;
+
+        const minX = Math.min(...currentPlan.rooms.map(room =&gt; room.x - room.width / 2));
+        const maxX = Math.max(...currentPlan.rooms.map(room =&gt; room.x + room.width / 2));
+        const minY = Math.min(...currentPlan.rooms.map(room =&gt; room.y - room.height / 2));
+        const maxY = Math.max(...currentPlan.rooms.map(room =&gt; room.y + room.height / 2));
+        const scale = Math.min(680 / Math.max(1, maxX - minX), 350 / Math.max(1, maxY - minY));
+        const project = point =&gt; ({ x: 40 + (point.x - minX) * scale, y: 390 - (point.y - minY) * scale });
+
+        corridorLayer.innerHTML = currentPlan.edges.map(edge =&gt; {
+          const points = edge.points.map(point =&gt; {
+            const projected = project(point);
+            return `${projected.x.toFixed(1)},${projected.y.toFixed(1)}`;
+          }).join(&#x27; &#x27;);
+          const critical = currentPlan.criticalEdges.has(edgeKey(edge.a, edge.b));
+          return `&lt;polyline class=&quot;corridor${critical ? &#x27; corridor-critical&#x27; : &#x27;&#x27;}&quot; points=&quot;${points}&quot;&gt;&lt;/polyline&gt;`;
+        }).join(&#x27;&#x27;);
+
+        roomLayer.innerHTML = currentPlan.rooms.map(room =&gt; {
+          const center = project(room);
+          const width = Math.max(45, room.width * scale);
+          const height = Math.max(36, room.height * scale);
+          const selected = room.id === selectedRoomId ? &#x27; room-selected&#x27; : &#x27;&#x27;;
+          return `&lt;g data-room-id=&quot;${room.id}&quot;&gt;
+            &lt;rect class=&quot;room-shape room-${room.purpose.toLowerCase()}${selected}&quot; x=&quot;${(center.x - width / 2).toFixed(1)}&quot; y=&quot;${(center.y - height / 2).toFixed(1)}&quot; width=&quot;${width.toFixed(1)}&quot; height=&quot;${height.toFixed(1)}&quot; rx=&quot;5&quot;&gt;&lt;/rect&gt;
+            &lt;text x=&quot;${center.x.toFixed(1)}&quot; y=&quot;${(center.y - 6).toFixed(1)}&quot;&gt;${purposeShort[room.purpose]}&lt;/text&gt;
+            &lt;text class=&quot;room-subtext&quot; x=&quot;${center.x.toFixed(1)}&quot; y=&quot;${(center.y + 10).toFixed(1)}&quot;&gt;#${room.id} · d${room.sequence}&lt;/text&gt;
+          &lt;/g&gt;`;
+        }).join(&#x27;&#x27;);
+
+        inspectSelect.innerHTML = currentPlan.rooms
+          .slice().sort((a, b) =&gt; a.sequence - b.sequence || a.id - b.id)
+          .map(room =&gt; `&lt;option value=&quot;${room.id}&quot;${room.id === selectedRoomId ? &#x27; selected&#x27; : &#x27;&#x27;}&gt;#${room.id} — ${room.purpose} / ${templateData[room.template].name}&lt;/option&gt;`).join(&#x27;&#x27;);
+        updateRoomSelection();
+      }
+
+      function updateRoomSelection() {
+        if (!currentPlan) return;
+        selectedRoomId = Number.parseInt(inspectSelect.value || selectedRoomId, 10);
+        const room = currentPlan.rooms.find(candidate =&gt; candidate.id === selectedRoomId) || currentPlan.rooms[0];
+        roomLayer.querySelectorAll(&#x27;.room-shape&#x27;).forEach(shape =&gt; shape.classList.remove(&#x27;room-selected&#x27;));
+        const selectedShape = roomLayer.querySelector(`[data-room-id=&quot;${room.id}&quot;] .room-shape`);
+        if (selectedShape) selectedShape.classList.add(&#x27;room-selected&#x27;);
+        selectionSummary.textContent = `Room #${room.id}: ${room.purpose}, ${templateData[room.template].name}, sequence distance ${room.sequence}, approximately ${room.width} × ${room.height} units. Generated loops: ${currentPlan.loopCount}.`;
+        templateSelect.value = room.template;
+        renderTemplate();
+      }
+
+      function renderTemplate() {
+        const selected = templateData[templateSelect.value];
+        root.querySelector(&#x27;#dg-template-name&#x27;).textContent = selected.name;
+        root.querySelector(&#x27;#dg-template-geometry&#x27;).textContent = selected.geometry;
+        root.querySelector(&#x27;#dg-template-combat&#x27;).textContent = selected.combat;
+        root.querySelector(&#x27;#dg-template-ai&#x27;).textContent = selected.ai;
+        root.querySelector(&#x27;#dg-template-art&#x27;).textContent = selected.art;
+        root.querySelector(&#x27;#dg-template-status&#x27;).textContent = selected.status;
+
+        const roomX = 95, roomY = 55, roomWidth = 430, roomHeight = 250;
+        const gap = 46;
+        planRoom.innerHTML = `
+          &lt;rect class=&quot;room-floor&quot; x=&quot;${roomX}&quot; y=&quot;${roomY}&quot; width=&quot;${roomWidth}&quot; height=&quot;${roomHeight}&quot; rx=&quot;5&quot;&gt;&lt;/rect&gt;
+          &lt;line class=&quot;room-wall&quot; x1=&quot;${roomX}&quot; y1=&quot;${roomY}&quot; x2=&quot;${roomX + roomWidth / 2 - gap / 2}&quot; y2=&quot;${roomY}&quot;&gt;&lt;/line&gt;
+          &lt;line class=&quot;room-wall&quot; x1=&quot;${roomX + roomWidth / 2 + gap / 2}&quot; y1=&quot;${roomY}&quot; x2=&quot;${roomX + roomWidth}&quot; y2=&quot;${roomY}&quot;&gt;&lt;/line&gt;
+          &lt;line class=&quot;room-wall&quot; x1=&quot;${roomX}&quot; y1=&quot;${roomY + roomHeight}&quot; x2=&quot;${roomX + roomWidth / 2 - gap / 2}&quot; y2=&quot;${roomY + roomHeight}&quot;&gt;&lt;/line&gt;
+          &lt;line class=&quot;room-wall&quot; x1=&quot;${roomX + roomWidth / 2 + gap / 2}&quot; y1=&quot;${roomY + roomHeight}&quot; x2=&quot;${roomX + roomWidth}&quot; y2=&quot;${roomY + roomHeight}&quot;&gt;&lt;/line&gt;
+          &lt;line class=&quot;room-wall&quot; x1=&quot;${roomX}&quot; y1=&quot;${roomY}&quot; x2=&quot;${roomX}&quot; y2=&quot;${roomY + roomHeight / 2 - gap / 2}&quot;&gt;&lt;/line&gt;
+          &lt;line class=&quot;room-wall&quot; x1=&quot;${roomX}&quot; y1=&quot;${roomY + roomHeight / 2 + gap / 2}&quot; x2=&quot;${roomX}&quot; y2=&quot;${roomY + roomHeight}&quot;&gt;&lt;/line&gt;
+          &lt;line class=&quot;room-wall&quot; x1=&quot;${roomX + roomWidth}&quot; y1=&quot;${roomY}&quot; x2=&quot;${roomX + roomWidth}&quot; y2=&quot;${roomY + roomHeight / 2 - gap / 2}&quot;&gt;&lt;/line&gt;
+          &lt;line class=&quot;room-wall&quot; x1=&quot;${roomX + roomWidth}&quot; y1=&quot;${roomY + roomHeight / 2 + gap / 2}&quot; x2=&quot;${roomX + roomWidth}&quot; y2=&quot;${roomY + roomHeight}&quot;&gt;&lt;/line&gt;
+          ${selected.obstacles.map(obstacle =&gt; {
+            const width = obstacle[2] * roomWidth;
+            const height = obstacle[3] * roomHeight;
+            const x = roomX + roomWidth / 2 + obstacle[0] * roomWidth - width / 2;
+            const y = roomY + roomHeight / 2 + obstacle[1] * roomHeight - height / 2;
+            return `&lt;rect class=&quot;room-obstacle&quot; x=&quot;${x.toFixed(1)}&quot; y=&quot;${y.toFixed(1)}&quot; width=&quot;${width.toFixed(1)}&quot; height=&quot;${height.toFixed(1)}&quot; rx=&quot;3&quot;&gt;&lt;/rect&gt;`;
+          }).join(&#x27;&#x27;)}
+          &lt;text x=&quot;310&quot; y=&quot;334&quot;&gt;${selected.name}&lt;/text&gt;`;
+        renderThemeMarks();
+      }
+
+      function renderThemeMarks() {
+        const theme = themeSelect.value;
+        root.dataset.theme = theme;
+        if (theme === &#x27;damp&#x27;) {
+          planTheme.innerHTML = &#x27;&lt;ellipse class=&quot;theme-mark&quot; cx=&quot;185&quot; cy=&quot;125&quot; rx=&quot;42&quot; ry=&quot;19&quot;&gt;&lt;/ellipse&gt;&lt;circle class=&quot;theme-mark&quot; cx=&quot;455&quot; cy=&quot;245&quot; r=&quot;17&quot;&gt;&lt;/circle&gt;&lt;circle class=&quot;theme-mark&quot; cx=&quot;420&quot; cy=&quot;105&quot; r=&quot;9&quot;&gt;&lt;/circle&gt;&#x27;;
+        } else if (theme === &#x27;crypt&#x27;) {
+          planTheme.innerHTML = &#x27;&lt;rect class=&quot;theme-mark&quot; x=&quot;135&quot; y=&quot;92&quot; width=&quot;55&quot; height=&quot;25&quot;&gt;&lt;/rect&gt;&lt;rect class=&quot;theme-mark&quot; x=&quot;430&quot; y=&quot;240&quot; width=&quot;55&quot; height=&quot;25&quot;&gt;&lt;/rect&gt;&lt;path class=&quot;theme-mark&quot; d=&quot;M260 75h100v22H260z&quot;&gt;&lt;/path&gt;&#x27;;
+        } else if (theme === &#x27;temple&#x27;) {
+          planTheme.innerHTML = &#x27;&lt;circle class=&quot;theme-mark&quot; cx=&quot;310&quot; cy=&quot;180&quot; r=&quot;48&quot;&gt;&lt;/circle&gt;&lt;path class=&quot;theme-mark&quot; d=&quot;M140 250l42-42 42 42z&quot;&gt;&lt;/path&gt;&lt;path class=&quot;theme-mark&quot; d=&quot;M400 110l42-42 42 42z&quot;&gt;&lt;/path&gt;&#x27;;
+        } else {
+          planTheme.innerHTML = &#x27;&lt;path class=&quot;theme-mark&quot; d=&quot;M150 120l24-36 24 36-24 36z&quot;&gt;&lt;/path&gt;&lt;path class=&quot;theme-mark&quot; d=&quot;M440 230l32-48 32 48-32 48z&quot;&gt;&lt;/path&gt;&lt;path class=&quot;theme-mark&quot; d=&quot;M345 95l15-24 15 24-15 24z&quot;&gt;&lt;/path&gt;&#x27;;
+        }
+
+        const data = themeData[theme];
+        root.querySelector(&#x27;#dg-theme-silhouette&#x27;).textContent = data.silhouette;
+        root.querySelector(&#x27;#dg-theme-floor&#x27;).textContent = data.floor;
+        root.querySelector(&#x27;#dg-theme-walls&#x27;).textContent = data.walls;
+        root.querySelector(&#x27;#dg-theme-landmarks&#x27;).textContent = data.landmarks;
+        root.querySelector(&#x27;#dg-theme-rule&#x27;).textContent = data.rule;
+        root.querySelector(&#x27;#dg-theme-mechanics&#x27;).textContent = data.mechanics;
+      }
+
+      Object.entries(templateData).forEach(([value, data]) =&gt; {
+        const option = document.createElement(&#x27;option&#x27;);
+        option.value = value;
+        option.textContent = data.name;
+        templateSelect.appendChild(option);
+      });
+
+      roomRange.addEventListener(&#x27;input&#x27;, () =&gt; roomValue.textContent = roomRange.value);
+      loopRange.addEventListener(&#x27;input&#x27;, () =&gt; loopValue.textContent = loopRange.value);
+      generateButton.addEventListener(&#x27;click&#x27;, renderPlan);
+      inspectSelect.addEventListener(&#x27;change&#x27;, updateRoomSelection);
+      templateSelect.addEventListener(&#x27;change&#x27;, renderTemplate);
+      themeSelect.addEventListener(&#x27;change&#x27;, () =&gt; { renderThemeMarks(); renderTemplate(); });
+      searchInput.addEventListener(&#x27;input&#x27;, () =&gt; searchInput.setCustomValidity(&#x27;&#x27;));
+      searchForm.addEventListener(&#x27;submit&#x27;, event =&gt; {
+        event.preventDefault();
+        const query = searchInput.value.trim().toLowerCase();
+        if (!query) return;
+        const headings = [...root.querySelectorAll(&#x27;.wiki-article h1, .wiki-article h2, .wiki-article h3&#x27;)];
+        const match = headings.find(heading =&gt; heading.textContent.toLowerCase().includes(query));
+        if (!match) {
+          searchInput.setCustomValidity(&#x27;No matching article section was found.&#x27;);
+          searchInput.reportValidity();
+          return;
+        }
+        searchInput.setCustomValidity(&#x27;&#x27;);
+        match.scrollIntoView({ behavior: &#x27;smooth&#x27;, block: &#x27;start&#x27; });
+      });
+      roomLayer.addEventListener(&#x27;click&#x27;, event =&gt; {
+        const group = event.target.closest(&#x27;[data-room-id]&#x27;);
+        if (!group) return;
+        selectedRoomId = Number.parseInt(group.dataset.roomId, 10);
+        inspectSelect.value = String(selectedRoomId);
+        updateRoomSelection();
+      });
+      discussButton.addEventListener(&#x27;click&#x27;, async () =&gt; {
+        const theme = themeData[themeSelect.value];
+        const template = templateData[templateSelect.value];
+        const prompt = `Let us iterate on the dungeon generation design before implementation. Current visual selections: theme = ${theme.name}; room template = ${template.name}; illustrative room count = ${roomRange.value}; loop ceiling = ${loopRange.value}. Please discuss how this direction should change the art language, room grammar, gameplay readability, encounter design, and data model. Do not implement changes until we agree on the direction.`;
+        let copied = false;
+        try {
+          await navigator.clipboard.writeText(prompt);
+          copied = true;
+        } catch (error) {
+          const temporary = document.createElement(&#x27;textarea&#x27;);
+          temporary.value = prompt;
+          temporary.setAttribute(&#x27;readonly&#x27;, &#x27;&#x27;);
+          temporary.style.position = &#x27;absolute&#x27;;
+          temporary.style.left = &#x27;-9999px&#x27;;
+          root.appendChild(temporary);
+          temporary.select();
+          copied = document.execCommand(&#x27;copy&#x27;);
+          temporary.remove();
+        }
+        discussStatus.textContent = copied
+          ? &#x27;Change brief copied. Paste it into your Codex task.&#x27;
+          : prompt;
+      });
+
+      templateSelect.value = &#x27;OpenArena&#x27;;
+      root.dataset.theme = &#x27;damp&#x27;;
+      renderPlan();
+      renderThemeMarks();
+    })();
+  &lt;/script&gt;
+&lt;/div&gt;
+
+&lt;script&gt;
+(() =&gt; {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set([&quot;top&quot;, &quot;right&quot;, &quot;bottom&quot;, &quot;left&quot;]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+
+  const getTrigger = (target) =&gt;
+    target?.nodeType === Node.ELEMENT_NODE
+      ? target.closest(&quot;[data-tooltip]&quot;)
+      : null;
+  const containsTarget = (trigger, target) =&gt;
+    target?.nodeType != null &amp;&amp; trigger.contains(target);
+  const getContent = (trigger) =&gt;
+    trigger.getAttribute(&quot;data-tooltip&quot;)?.trim() ?? &quot;&quot;;
+  const getPlacement = (trigger) =&gt; {
+    const placement = trigger.getAttribute(&quot;data-tooltip-placement&quot;);
+    return tooltipPlacements.has(placement) ? placement : &quot;top&quot;;
+  };
+  const getTooltip = () =&gt; {
+    if (tooltip == null) {
+      tooltip = document.createElement(&quot;div&quot;);
+      tooltip.id = tooltipId;
+      tooltip.className = &quot;tooltip&quot;;
+      tooltip.setAttribute(&quot;role&quot;, &quot;tooltip&quot;);
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) =&gt; {
+    const ids = new Set(
+      (trigger.getAttribute(&quot;aria-describedby&quot;) ?? &quot;&quot;)
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute(&quot;aria-describedby&quot;);
+    } else {
+      trigger.setAttribute(&quot;aria-describedby&quot;, [...ids].join(&quot; &quot;));
+    }
+  };
+  const clearOpenTimeout = () =&gt; {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) =&gt; {
+    clearOpenTimeout();
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) =&gt; {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-width&quot;,
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-height&quot;,
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: &quot;fixed&quot;,
+    })
+      .then(({ x, y }) =&gt; {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = &quot;visible&quot;;
+      })
+      .catch(() =&gt; {
+        if (activeTrigger === trigger &amp;&amp; request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) =&gt; {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = &quot;hidden&quot;;
+    floating.style.transform = &quot;translate(0, 0)&quot;;
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () =&gt; {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) =&gt; {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() &lt; skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() =&gt; {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) =&gt; {
+    if (event.pointerType === &quot;touch&quot;) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handleLeave = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger?.matches(&quot;:focus-visible&quot;)) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) =&gt; {
+    if (event.key === &quot;Escape&quot;) {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const destroy = () =&gt; {
+    closeTooltip(false);
+    document.removeEventListener(&quot;pointerover&quot;, handlePointerOpen);
+    document.removeEventListener(&quot;pointerout&quot;, handleLeave);
+    document.removeEventListener(&quot;focusin&quot;, handleFocusIn);
+    document.removeEventListener(&quot;focusout&quot;, handleLeave);
+    document.removeEventListener(&quot;keydown&quot;, handleKeyDown);
+    document.removeEventListener(&quot;contextmenu&quot;, handleContextMenu);
+    tooltip = null;
+  };
+
+  document.addEventListener(&quot;pointerover&quot;, handlePointerOpen);
+  document.addEventListener(&quot;pointerout&quot;, handleLeave);
+  document.addEventListener(&quot;focusin&quot;, handleFocusIn);
+  document.addEventListener(&quot;focusout&quot;, handleLeave);
+  document.addEventListener(&quot;keydown&quot;, handleKeyDown);
+  document.addEventListener(&quot;contextmenu&quot;, handleContextMenu);
+  window.addEventListener(&quot;pagehide&quot;, destroy, { once: true });
+})();
+&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  const initialize = () =&gt; {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById(&quot;codex-visualization-lucide&quot;)
+    ?.addEventListener(&quot;load&quot;, initialize, { once: true });
+})();
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+</body>
+</html>

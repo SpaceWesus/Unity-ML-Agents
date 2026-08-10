@@ -53,6 +53,7 @@ namespace Turtle.DungeonRaid
         private float startCountdown;
         private float raidTime;
         private bool running;
+        private bool externalCombatMode;
         private string latestEvent = "Waiting for the strike team.";
         private string resultMessage = string.Empty;
 
@@ -67,6 +68,13 @@ namespace Turtle.DungeonRaid
         public string LatestEvent => latestEvent;
         public string ResultMessage => resultMessage;
 
+        /// <summary>
+        /// Read-only telemetry hook. Combat remains authoritative here; survival
+        /// labs use this event to count and inspect casts without duplicating the
+        /// ability resolver.
+        /// </summary>
+        public event Action<RaidAgent2D, RaidAbilitySpec> AbilityResolved;
+
         private void Awake()
         {
             RebuildAgentCache();
@@ -79,6 +87,7 @@ namespace Turtle.DungeonRaid
 
         private void Update()
         {
+            EnsureAgentCacheCurrent();
             var deltaTime = Mathf.Min(0.1f, Time.deltaTime);
             if (!running)
             {
@@ -116,6 +125,7 @@ namespace Turtle.DungeonRaid
 
         public void ResetRaid()
         {
+            externalCombatMode = false;
             RebuildAgentCache();
             raidTime = 0f;
             decisionAccumulator = 0f;
@@ -144,6 +154,43 @@ namespace Turtle.DungeonRaid
             party?.ResetParty();
         }
 
+        /// <summary>
+        /// Supplies a rendered combat scenario that owns its own objective and
+        /// round state. The disabled dungeon director still provides the shared
+        /// contact, ability, status, and pooled-FX resolution contract.
+        /// </summary>
+        public void BeginExternalCombat(
+            IReadOnlyList<RaidAgent2D> externalHunters,
+            IReadOnlyList<RaidAgent2D> externalMonsters,
+            float combatTime = 0f)
+        {
+            externalCombatMode = true;
+            running = false;
+            raidTime = Mathf.Max(0f, combatTime);
+            persistentFields.Clear();
+            ReplaceRoster(hunters, externalHunters);
+            ReplaceRoster(monsters, externalMonsters);
+        }
+
+        /// <summary>
+        /// Advances timed status fields while the dungeon objective Update loop
+        /// is disabled. Call once per frame before external AI decisions.
+        /// </summary>
+        public void StepExternalCombat(float combatTime)
+        {
+            if (!externalCombatMode) return;
+            raidTime = Mathf.Max(raidTime, combatTime);
+            StepPersistentFields();
+        }
+
+        public void EndExternalCombat()
+        {
+            externalCombatMode = false;
+            persistentFields.Clear();
+            hunters.Clear();
+            monsters.Clear();
+        }
+
         public void PublishEvent(string message)
         {
             if (!string.IsNullOrWhiteSpace(message)) latestEvent = message;
@@ -153,6 +200,20 @@ namespace Turtle.DungeonRaid
             RaidAgent2D caster,
             RaidAgent2D intendedTarget,
             float rawDamage)
+        {
+            return ResolveBasicAttack(caster, intendedTarget, rawDamage, raidTime);
+        }
+
+        /// <summary>
+        /// Resolves the shared cast-based attack contract against an explicit
+        /// combat clock. Large rendered battles can reuse the same hurtbox rules
+        /// without making the dungeon objective state machine authoritative.
+        /// </summary>
+        public bool ResolveBasicAttack(
+            RaidAgent2D caster,
+            RaidAgent2D intendedTarget,
+            float rawDamage,
+            float combatTime)
         {
             if (caster == null || intendedTarget == null || !caster.CanAct) return false;
             var direction = intendedTarget.Position - caster.Position;
@@ -173,7 +234,7 @@ namespace Turtle.DungeonRaid
                     new Color(0.72f, 0.76f, 0.82f));
                 return false;
             }
-            contacted.ReceiveDamage(caster, rawDamage, raidTime, this);
+            contacted.ReceiveDamage(caster, rawDamage, combatTime, this);
             return true;
         }
 
@@ -263,8 +324,10 @@ namespace Turtle.DungeonRaid
                     while (activeRouteWaypoint < activeRouteConnection.WaypointCount)
                     {
                         var point = activeRouteConnection.GetWaypoint(activeRouteWaypoint, forward);
-                        if (Vector2.Distance(partyPosition, point) >
-                            Mathf.Max(0.8f, activeRouteConnection.Width * 0.28f))
+                        var arrivalRadius = Mathf.Max(
+                            1.25f,
+                            activeRouteConnection.Width * 0.42f);
+                        if (!HasPartyQuorumReached(point, arrivalRadius))
                         {
                             return point;
                         }
@@ -309,6 +372,22 @@ namespace Turtle.DungeonRaid
             activeRouteFrom = null;
             activeRouteTo = null;
             activeRouteWaypoint = 0;
+        }
+
+        private bool HasPartyQuorumReached(Vector2 point, float radius)
+        {
+            var activeCount = 0;
+            var arrivedCount = 0;
+            for (var index = 0; index < hunters.Count; index++)
+            {
+                var hunter = hunters[index];
+                if (hunter == null || !hunter.CanAct) continue;
+                activeCount++;
+                if (Vector2.Distance(hunter.Position, point) <= radius) arrivedCount++;
+            }
+            if (activeCount == 0) return false;
+            var requiredCount = Mathf.Max(1, Mathf.CeilToInt(activeCount * 0.6f));
+            return arrivedCount >= requiredCount;
         }
 
         public RaidRoom2D FindRoom(Vector2 position)
@@ -446,6 +525,13 @@ namespace Turtle.DungeonRaid
                         ability.radius,
                         ability.preferredHealthThreshold) * 70f;
                 case RaidAbilityEffect.Shield:
+                    if (caster.Faction != RaidFaction.Hunters ||
+                        caster.Role != RaidCombatRole.Tank ||
+                        (!externalCombatMode &&
+                         (party == null || party.Phase != RaidPartyPhase.Engaging)))
+                    {
+                        return 0f;
+                    }
                     target = caster;
                     return CountShieldCandidates(caster, ability.radius) * 34f;
                 case RaidAbilityEffect.Taunt:
@@ -523,6 +609,7 @@ namespace Turtle.DungeonRaid
             RaidAbilitySpec ability)
         {
             caster.CommitAbility(ability, raidTime);
+            AbilityResolved?.Invoke(caster, ability);
             caster.MarkAbilityCast(ability, target, this);
             Effects?.EmitText(
                 caster.Position + Vector2.up,
@@ -552,12 +639,18 @@ namespace Turtle.DungeonRaid
                     AddPersistentField(caster, caster.Position, ability, true);
                     break;
                 case RaidAbilityEffect.Shield:
+                    if (caster.Faction != RaidFaction.Hunters ||
+                        caster.Role != RaidCombatRole.Tank)
+                    {
+                        break;
+                    }
                     ApplyToAlliesByPhysics(
                         caster,
                         caster.Position,
                         ability.radius,
                         false,
-                        ally => ally.GrantShield(
+                        ally => ally.GrantTemporaryShield(
+                            caster,
                             ResolveAbilityPower(caster, ally, ability),
                             raidTime,
                             this,
@@ -998,7 +1091,7 @@ namespace Turtle.DungeonRaid
                 var candidate = candidates[index];
                 if (candidate != null &&
                     candidate.CanAct &&
-                    candidate.CurrentShield <= 0f &&
+                    !candidate.HasTemporaryShield &&
                     Vector2.Distance(caster.Position, candidate.Position) <= radius)
                 {
                     count++;
@@ -1096,6 +1189,48 @@ namespace Turtle.DungeonRaid
                         monsters.Add(members[memberIndex]);
                     }
                 }
+            }
+            IgnoreFriendlyAgentCollisions(hunters);
+            IgnoreFriendlyAgentCollisions(monsters);
+        }
+
+        private static void IgnoreFriendlyAgentCollisions(IReadOnlyList<RaidAgent2D> agents)
+        {
+            for (var leftIndex = 0; leftIndex < agents.Count; leftIndex++)
+            {
+                var left = agents[leftIndex];
+                if (left == null) continue;
+                for (var rightIndex = leftIndex + 1; rightIndex < agents.Count; rightIndex++)
+                {
+                    left.IgnoreFriendlyCollisionWith(agents[rightIndex]);
+                }
+            }
+        }
+
+        private static void ReplaceRoster(
+            List<RaidAgent2D> destination,
+            IReadOnlyList<RaidAgent2D> source)
+        {
+            destination.Clear();
+            if (source == null) return;
+            for (var index = 0; index < source.Count; index++)
+            {
+                var candidate = source[index];
+                if (candidate != null) destination.Add(candidate);
+            }
+        }
+
+        private void EnsureAgentCacheCurrent()
+        {
+            var expectedHunters = party?.Members.Count ?? 0;
+            var expectedMonsters = 0;
+            for (var podIndex = 0; podIndex < enemyPods.Length; podIndex++)
+            {
+                expectedMonsters += enemyPods[podIndex]?.Members.Count ?? 0;
+            }
+            if (hunters.Count != expectedHunters || monsters.Count != expectedMonsters)
+            {
+                RebuildAgentCache();
             }
         }
 

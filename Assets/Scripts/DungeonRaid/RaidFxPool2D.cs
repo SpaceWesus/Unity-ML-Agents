@@ -199,9 +199,14 @@ namespace Turtle.DungeonRaid
         }
 
 #if UNITY_EDITOR
-        public void ConfigureEditor(Sprite sprite)
+        public void ConfigureEditor(
+            Sprite sprite,
+            int configuredSpritePoolSize = 48,
+            int configuredTextPoolSize = 20)
         {
             effectSprite = sprite;
+            spritePoolSize = Mathf.Clamp(configuredSpritePoolSize, 12, 96);
+            textPoolSize = Mathf.Clamp(configuredTextPoolSize, 6, 48);
         }
 #endif
     }

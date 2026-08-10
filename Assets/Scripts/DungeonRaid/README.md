@@ -14,8 +14,8 @@ and saves the scene. Then use `Validate Demo Dungeon Prototype` for structural
 validation.
 
 The setup recognizes the current hunter labels. `Tanker` is intentionally mapped
-to the internal `Tank` combat role. The current authored Squad 1 contains six
-goblins: one sergeant, two bowmen, and three swordsmen.
+to the internal `Tank` combat role. The fixture contains three ordered goblin
+pods (6/6/7 combatants) and a final Goblin Warlord boss.
 
 The saved scene contains a fully materialized room-first preview, so the dungeon
 is visible and editable before Play Mode. The demo deliberately rolls a new seed
@@ -55,7 +55,13 @@ antechambers, and boss variants.
 - `RaidChest2D` stores only open/closed state. Loot ownership belongs to the
   recipient's inventory when a real inventory system is connected.
 - `RaidFxPool2D`, `RaidCamera2D`, and `RaidHud2D` provide pooled combat feedback,
-  framing, and readable runtime state.
+  framing, and readable runtime state. The HUD projects live status badges above
+  affected combatants and places hunter names, health, mana, and ability readiness
+  in a stable bottom-left strike-team panel; it reads authoritative agent timers
+  instead of duplicating combat state.
+- `RaidPlaybackController2D` owns the Demo Dungeon's developer playback speed.
+  It starts at 0.25x and exposes 0.25x, 0.5x, 1x, and 2x controls in the
+  upper-right corner of the Game view.
 
 ## Unity 2D combat contract
 
@@ -79,6 +85,19 @@ antechambers, and boss variants.
   Strike, Mend, Sanctuary, fire Elemental Affliction, Fireball, Piercing Shot,
   Hunter's Mark, Shadow Step, and Execution with the cooldowns and magnitudes
   recorded in the prototype brief.
+- Shield HP is never innate. Agents reset with zero shield, and only the hunter
+  Tanker's Bulwark can grant temporary shield HP to itself and nearby party
+  members. Bulwark is considered only during an active engagement and expires
+  after its authored duration. Its world-space shield renderer is disabled—not
+  merely transparent—unless that temporary shield state is currently active.
+- Stun and other temporary action locks never count as defeat. A party or enemy
+  pod remains alive while any member can still receive damage; raid completion
+  requires the boss pod to be defeated with its boss combatant actually dead.
+- Overhead status codes are `SHD`, `TNT`, `STN`, `ATK`, `EMP`, `MRK`, `BRN`, and
+  `DWN`. Hunter ability badges live in the strike-team panel and show `R` when
+  ready, remaining seconds while cooling down, `M` when mana is insufficient,
+  and `X` when the combatant cannot act. Hovering a badge expands its full name
+  and state.
 
 ## Adding content
 

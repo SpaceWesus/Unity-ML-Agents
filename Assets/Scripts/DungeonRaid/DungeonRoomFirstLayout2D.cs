@@ -10,11 +10,23 @@ namespace Turtle.DungeonRaid
     {
         [Min(5)] public int minimumRooms = 8;
         [Min(5)] public int maximumRooms = 12;
-        [Min(12f)] public float horizontalSpacing = 29f;
-        [Min(12f)] public float verticalSpacing = 23f;
-        [Range(0f, 4f)] public float positionJitter = 2.5f;
-        [Min(2.5f)] public float corridorWidth = 4.5f;
+        [Min(12f)] public float horizontalSpacing = 44f;
+        [Min(12f)] public float verticalSpacing = 38f;
+        [Range(0f, 4f)] public float positionJitter = 3f;
+        [Min(2.5f)] public float corridorWidth = 7f;
         [Range(0, 3)] public int maximumLoops = 2;
+
+        /// <summary>
+        /// Upgrades older serialized demo settings to the minimum footprint
+        /// needed by a six-member party without overwriting larger custom maps.
+        /// </summary>
+        public void EnsurePartyScaleDefaults()
+        {
+            horizontalSpacing = Mathf.Max(44f, horizontalSpacing);
+            verticalSpacing = Mathf.Max(38f, verticalSpacing);
+            positionJitter = Mathf.Max(3f, positionJitter);
+            corridorWidth = Mathf.Max(7f, corridorWidth);
+        }
 
         public void Sanitize()
         {
@@ -67,6 +79,182 @@ namespace Turtle.DungeonRaid
         }
     }
 
+    public readonly struct DungeonCorridorWallSegment2D
+    {
+        public readonly Vector2 Start;
+        public readonly Vector2 End;
+
+        public DungeonCorridorWallSegment2D(Vector2 start, Vector2 end)
+        {
+            Start = start;
+            End = end;
+        }
+
+        public float Length => Vector2.Distance(Start, End);
+    }
+
+    /// <summary>
+    /// Builds the two continuous wall centerlines around an orthogonal corridor.
+    /// Mitered corner intersections keep both the inner and outer rails sealed
+    /// without placing a wall across the traversable bend.
+    /// </summary>
+    public static class DungeonCorridorContainment2D
+    {
+        public const float DefaultWallThickness = 0.5f;
+        private const float PointTolerance = 0.001f;
+
+        public static bool TryBuildWallSegments(
+            IReadOnlyList<Vector2> centerline,
+            float corridorWidth,
+            float wallThickness,
+            List<DungeonCorridorWallSegment2D> destination,
+            out string reason)
+        {
+            if (destination == null)
+            {
+                throw new ArgumentNullException(nameof(destination));
+            }
+
+            destination.Clear();
+            if (centerline == null || centerline.Count < 2)
+            {
+                reason = "A corridor requires at least two centerline points.";
+                return false;
+            }
+            if (corridorWidth <= 0f || wallThickness <= 0f)
+            {
+                reason = "Corridor width and wall thickness must be positive.";
+                return false;
+            }
+
+            var directions = new Vector2[centerline.Count - 1];
+            for (var index = 0; index < directions.Length; index++)
+            {
+                if (!TryGetCardinalDirection(
+                        centerline[index + 1] - centerline[index],
+                        out directions[index]))
+                {
+                    reason = $"Corridor segment {index} must be non-zero and axis aligned.";
+                    return false;
+                }
+                if (index > 0 && Vector2.Dot(directions[index - 1], directions[index]) < -0.99f)
+                {
+                    reason = $"Corridor point {index} reverses direction and cannot form a contained corner.";
+                    return false;
+                }
+            }
+
+            var wallOffset = corridorWidth * 0.5f + wallThickness * 0.5f;
+            var leftBoundary = new List<Vector2>(centerline.Count);
+            var rightBoundary = new List<Vector2>(centerline.Count);
+            if (!TryBuildBoundary(centerline, directions, wallOffset, leftBoundary) ||
+                !TryBuildBoundary(centerline, directions, -wallOffset, rightBoundary))
+            {
+                reason = "Corridor wall boundaries could not form a continuous orthogonal path.";
+                return false;
+            }
+
+            AppendSegments(leftBoundary, destination);
+            AppendSegments(rightBoundary, destination);
+            var expectedCount = (centerline.Count - 1) * 2;
+            if (destination.Count != expectedCount)
+            {
+                reason = $"Corridor containment produced {destination.Count} walls; expected {expectedCount}.";
+                destination.Clear();
+                return false;
+            }
+
+            reason = string.Empty;
+            return true;
+        }
+
+        private static bool TryBuildBoundary(
+            IReadOnlyList<Vector2> centerline,
+            IReadOnlyList<Vector2> directions,
+            float offset,
+            List<Vector2> boundary)
+        {
+            boundary.Clear();
+            boundary.Add(centerline[0] + LeftNormal(directions[0]) * offset);
+            for (var index = 1; index < centerline.Count - 1; index++)
+            {
+                var previousDirection = directions[index - 1];
+                var nextDirection = directions[index];
+                var previousPoint = centerline[index] + LeftNormal(previousDirection) * offset;
+                if (Mathf.Abs(Cross(previousDirection, nextDirection)) <= PointTolerance)
+                {
+                    boundary.Add(previousPoint);
+                    continue;
+                }
+
+                var nextPoint = centerline[index] + LeftNormal(nextDirection) * offset;
+                if (!TryIntersectLines(
+                        previousPoint,
+                        previousDirection,
+                        nextPoint,
+                        nextDirection,
+                        out var intersection))
+                {
+                    return false;
+                }
+                boundary.Add(intersection);
+            }
+            boundary.Add(centerline[^1] + LeftNormal(directions[^1]) * offset);
+            return true;
+        }
+
+        private static void AppendSegments(
+            IReadOnlyList<Vector2> boundary,
+            ICollection<DungeonCorridorWallSegment2D> destination)
+        {
+            for (var index = 0; index < boundary.Count - 1; index++)
+            {
+                destination.Add(new DungeonCorridorWallSegment2D(
+                    boundary[index],
+                    boundary[index + 1]));
+            }
+        }
+
+        private static bool TryGetCardinalDirection(Vector2 delta, out Vector2 direction)
+        {
+            var hasHorizontal = Mathf.Abs(delta.x) > PointTolerance;
+            var hasVertical = Mathf.Abs(delta.y) > PointTolerance;
+            if (hasHorizontal == hasVertical)
+            {
+                direction = Vector2.zero;
+                return false;
+            }
+            direction = hasHorizontal
+                ? new Vector2(Mathf.Sign(delta.x), 0f)
+                : new Vector2(0f, Mathf.Sign(delta.y));
+            return true;
+        }
+
+        private static bool TryIntersectLines(
+            Vector2 firstPoint,
+            Vector2 firstDirection,
+            Vector2 secondPoint,
+            Vector2 secondDirection,
+            out Vector2 intersection)
+        {
+            var denominator = Cross(firstDirection, secondDirection);
+            if (Mathf.Abs(denominator) <= PointTolerance)
+            {
+                intersection = Vector2.zero;
+                return false;
+            }
+            var distance = Cross(secondPoint - firstPoint, secondDirection) / denominator;
+            intersection = firstPoint + firstDirection * distance;
+            return true;
+        }
+
+        private static Vector2 LeftNormal(Vector2 direction) =>
+            new(-direction.y, direction.x);
+
+        private static float Cross(Vector2 left, Vector2 right) =>
+            left.x * right.y - left.y * right.x;
+    }
+
     /// <summary>
     /// Pure, deterministic room-first planner. It owns no scene objects, so the
     /// same map seed can drive the visible dungeon and the off-screen raid model.
@@ -108,8 +296,8 @@ namespace Turtle.DungeonRaid
             for (var index = 0; index < cells.Count; index++)
             {
                 var cell = cells[index];
-                var width = RandomEven(random, 15, 23);
-                var height = RandomEven(random, 13, 19);
+                var width = RandomEven(random, 22, 32);
+                var height = RandomEven(random, 18, 28);
                 var jitter = new Vector2(
                     NextFloat(random, -settings.positionJitter, settings.positionJitter),
                     NextFloat(random, -settings.positionJitter, settings.positionJitter));
@@ -159,6 +347,21 @@ namespace Turtle.DungeonRaid
             if (plan.Connections.Any(connection => connection.Waypoints.Count < 2))
             {
                 reason = "Every room connection must expose traversable waypoints.";
+                return false;
+            }
+            var wallSegments = new List<DungeonCorridorWallSegment2D>(8);
+            foreach (var connection in plan.Connections)
+            {
+                if (DungeonCorridorContainment2D.TryBuildWallSegments(
+                        connection.Waypoints,
+                        connection.Width,
+                        DungeonCorridorContainment2D.DefaultWallThickness,
+                        wallSegments,
+                        out var containmentReason))
+                {
+                    continue;
+                }
+                reason = $"Connection {connection.FromRoomId}-{connection.ToRoomId} is not physically containable: {containmentReason}";
                 return false;
             }
             reason = string.Empty;
@@ -273,19 +476,19 @@ namespace Turtle.DungeonRaid
 
             rooms[endpointA].Purpose = RaidRoomPurpose.Entrance;
             rooms[endpointA].Template = DungeonRoomTemplate2D.OpenArena;
-            rooms[endpointA].Size = new Vector2(19f, 16f);
+            rooms[endpointA].Size = new Vector2(28f, 22f);
             rooms[endpointB].Purpose = RaidRoomPurpose.Boss;
             rooms[endpointB].Template = random.Next(2) == 0
                 ? DungeonRoomTemplate2D.BossPillars
                 : DungeonRoomTemplate2D.BossOpen;
-            rooms[endpointB].Size = new Vector2(28f, 23f);
+            rooms[endpointB].Size = new Vector2(38f, 32f);
 
             if (path.Count >= 3)
             {
                 var transition = rooms[path[^2]];
                 transition.Purpose = RaidRoomPurpose.Transition;
                 transition.Template = DungeonRoomTemplate2D.BossAntechamber;
-                transition.Size = new Vector2(15f, 13f);
+                transition.Size = new Vector2(24f, 18f);
             }
 
             var branchIndex = 0;
@@ -373,7 +576,16 @@ namespace Turtle.DungeonRaid
 
         private static void AddDistinct(List<Vector2> points, Vector2 point)
         {
-            if (points.Count == 0 || Vector2.SqrMagnitude(points[^1] - point) > 0.01f) points.Add(point);
+            // Preserve short orthogonal jogs. The former 0.1-unit merge radius
+            // could discard one corner of a Manhattan route and leave the next
+            // segment slightly diagonal, which made physical wall containment
+            // impossible even though the room graph itself remained connected.
+            const float mergeDistanceSqr = 0.000001f;
+            if (points.Count == 0 ||
+                Vector2.SqrMagnitude(points[^1] - point) > mergeDistanceSqr)
+            {
+                points.Add(point);
+            }
         }
 
         private static Dictionary<int, List<int>> BuildAdjacency(int roomCount, IEnumerable<Edge> edges)

@@ -16,6 +16,7 @@ namespace Turtle.DungeonRaid.Editor
         // map seed to the same deterministic generator.
         public const string ScenePath = "Assets/Scenes/Demo Dungeon.unity";
         private const int DefaultPreviewSeed = 731245;
+        private const float DefaultPlaybackSpeed = 0.25f;
         private const string RequestRelativePath =
             "Temp/CodexValidation/setup-demo-dungeon.request";
         private const string ResultRelativePath =
@@ -62,6 +63,7 @@ namespace Turtle.DungeonRaid.Editor
 
         private static void RunRequestedSetup()
         {
+            // Requests are intentionally one-shot so normal editor updates do no polling work.
             if (!File.Exists(RequestPath))
             {
                 EditorApplication.update -= RunRequestedSetup;
@@ -203,13 +205,74 @@ namespace Turtle.DungeonRaid.Editor
                     .ThenBy(candidate => candidate.ToRoom?.Sequence ?? int.MaxValue)
                     .ToList();
 
+                var squadTwoObject = FindChild(monsterRoot.transform, "Squad 2");
+                var squadThreeObject = FindChild(monsterRoot.transform, "Squad 3");
+                var bossObject = FindChild(monsterRoot.transform, "Boss");
+                if (squadTwoObject == null || squadThreeObject == null || bossObject == null)
+                {
+                    throw new InvalidOperationException(
+                        "Monsters and Bosses must retain Squad 2, Squad 3, and Boss fixture roots.");
+                }
+
+                var monsterTemplate = squadObject.GetComponentsInChildren<SpriteRenderer>(true)
+                    .FirstOrDefault(renderer => renderer.transform.parent == squadObject.transform);
+                if (monsterTemplate == null || monsterTemplate.sprite == null)
+                {
+                    throw new InvalidOperationException(
+                        "Squad 1 must retain at least one visible monster to seed the additional test rosters.");
+                }
+
+                EnsureMonsterRoster(squadTwoObject.transform, monsterTemplate, new[]
+                {
+                    "Goblin Sergeant - Squad 2",
+                    "Goblin - Bow Squad 2A",
+                    "Goblin - Bow Squad 2B",
+                    "Goblin - Sword Squad 2A",
+                    "Goblin - Sword Squad 2B",
+                    "Goblin - Sword Squad 2C"
+                });
+                EnsureMonsterRoster(squadThreeObject.transform, monsterTemplate, new[]
+                {
+                    "Goblin Sergeant - Squad 3",
+                    "Goblin - Bow Squad 3A",
+                    "Goblin - Bow Squad 3B",
+                    "Goblin - Sword Squad 3A",
+                    "Goblin - Sword Squad 3B",
+                    "Goblin - Sword Squad 3C",
+                    "Goblin - Sword Squad 3D"
+                });
+                EnsureMonsterRoster(bossObject.transform, monsterTemplate, new[]
+                {
+                    "Goblin Warlord - Boss"
+                }, 1.35f);
+
                 var hunters = ConfigureHunters(hunterRoot.transform);
-                var monsters = ConfigureMonsters(squadObject.transform);
+                var firstMonsters = ConfigureMonsters(squadObject.transform, "goblin-pod-01");
+                var secondMonsters = ConfigureMonsters(squadTwoObject.transform, "goblin-pod-02");
+                var thirdMonsters = ConfigureMonsters(squadThreeObject.transform, "goblin-pod-03");
+                var bossMonsters = ConfigureMonsters(bossObject.transform, "goblin-boss");
+                var monsters = firstMonsters
+                    .Concat(secondMonsters)
+                    .Concat(thirdMonsters)
+                    .Concat(bossMonsters)
+                    .ToList();
                 var party = GetOrAddSingle<RaidPartyBrain2D>(hunterRoot);
                 party.ConfigureEditor(hunters);
-                var pod = GetOrAddSingle<RaidEnemyPodBrain2D>(squadObject);
-                pod.ConfigureEditor("goblin-pod-01", "Goblin Patrol", 0, mobRoom, monsters, 9.5f);
-                MarkDirty(party, pod);
+                var firstPod = GetOrAddSingle<RaidEnemyPodBrain2D>(squadObject);
+                var secondPod = GetOrAddSingle<RaidEnemyPodBrain2D>(squadTwoObject);
+                var thirdPod = GetOrAddSingle<RaidEnemyPodBrain2D>(squadThreeObject);
+                var bossPod = GetOrAddSingle<RaidEnemyPodBrain2D>(bossObject);
+                firstPod.ConfigureEditor(
+                    "goblin-pod-01", "Goblin Patrol", 0, mobRoom, firstMonsters, 9.5f);
+                secondPod.ConfigureEditor(
+                    "goblin-pod-02", "Goblin Warband", 1, mobRoom, secondMonsters, 10.5f);
+                thirdPod.ConfigureEditor(
+                    "goblin-pod-03", "Goblin Honor Guard", 2, mobRoom, thirdMonsters, 11.5f);
+                bossPod.ConfigureEditor(
+                    "goblin-boss", "Goblin Warlord", 3, mobRoom, bossMonsters, 13f);
+                var encounterPods = new[] { firstPod, secondPod, thirdPod };
+                var allPods = encounterPods.Append(bossPod).ToArray();
+                MarkDirty(party, firstPod, secondPod, thirdPod, bossPod);
 
                 var chestObject = FindChild(mobRoomObject.transform, "Chest - Tier 1") ??
                                   scene.GetRootGameObjects()
@@ -223,7 +286,7 @@ namespace Turtle.DungeonRaid.Editor
                 var chest = GetOrAddSingle<RaidChest2D>(chestObject);
                 var chestCollider = GetOrAdd<BoxCollider2D>(chestObject);
                 chestCollider.isTrigger = true;
-                chest.ConfigureEditor("mob-den-01-chest", 1, pod);
+                chest.ConfigureEditor("mob-den-01-chest", 1, firstPod);
                 MarkDirty(chest, chestCollider);
 
                 var systemsObject = FindRoot(scene, "Raid Systems");
@@ -235,6 +298,8 @@ namespace Turtle.DungeonRaid.Editor
                 }
                 var director = GetOrAddSingle<DungeonRaidDirector2D>(systemsObject);
                 var hud = GetOrAddSingle<RaidHud2D>(systemsObject);
+                var playback = GetOrAddSingle<RaidPlaybackController2D>(systemsObject);
+                playback.ConfigureEditor(DefaultPlaybackSpeed, true);
                 var fxObject = FindChild(systemsObject.transform, "Raid FX Pool");
                 if (fxObject == null)
                 {
@@ -263,7 +328,7 @@ namespace Turtle.DungeonRaid.Editor
                 hud.ConfigureEditor(director);
                 director.ConfigureEditor(
                     party,
-                    new[] { pod },
+                    allPods,
                     authoredRooms.ToArray(),
                     authoredConnections.ToArray(),
                     new[] { chest },
@@ -273,13 +338,15 @@ namespace Turtle.DungeonRaid.Editor
 
                 var interactiveObjects = EnsureChild(dungeonTiles.transform, "Interactive Objects");
                 chestObject.transform.SetParent(interactiveObjects.transform, true);
+                var navigation = GetOrAddSingle<DungeonNavigationGrid2D>(dungeonTiles);
                 var generator = GetOrAddSingle<DungeonRoomFirstGenerator2D>(dungeonTiles);
                 generator.ConfigureEditor(
                     DefaultPreviewSeed,
                     true,
                     director,
                     party,
-                    pod,
+                    encounterPods,
+                    bossPod,
                     chest,
                     floorSprite,
                     wallSprite);
@@ -290,7 +357,8 @@ namespace Turtle.DungeonRaid.Editor
                 connectionObject.SetActive(false);
                 var legacyExpansion = FindChild(dungeonTiles.transform, "Greybox Room Kit");
                 if (legacyExpansion != null) legacyExpansion.SetActive(false);
-                MarkDirty(director, hud, fx, raidCamera, camera, generator, pod, chest);
+                MarkDirty(director, hud, playback, fx, raidCamera, camera, generator, navigation,
+                    firstPod, secondPod, thirdPod, bossPod, chest);
 
                 EditorSceneManager.MarkSceneDirty(scene);
                 EditorSceneManager.SaveScene(scene);
@@ -342,6 +410,10 @@ namespace Turtle.DungeonRaid.Editor
                 var camera = FindRoot(scene, "Main Camera")?.GetComponent<Camera>();
                 var generator = roots.SelectMany(root =>
                     root.GetComponentsInChildren<DungeonRoomFirstGenerator2D>(true)).FirstOrDefault();
+                var navigation = roots.SelectMany(root =>
+                    root.GetComponentsInChildren<DungeonNavigationGrid2D>(true)).FirstOrDefault();
+                var playback = roots.SelectMany(root =>
+                    root.GetComponentsInChildren<RaidPlaybackController2D>(true)).FirstOrDefault();
 
                 rooms = roots.SelectMany(root =>
                     root.GetComponentsInChildren<RaidRoom2D>()).ToArray();
@@ -349,13 +421,31 @@ namespace Turtle.DungeonRaid.Editor
                     root.GetComponentsInChildren<RaidRoomConnection2D>()).ToArray();
 
                 Check(director != null, "Raid Systems must contain a DungeonRaidDirector2D.", failures);
+                Check(playback != null &&
+                      Mathf.Approximately(playback.DefaultPlaybackSpeed, DefaultPlaybackSpeed) &&
+                      playback.ShowsPlaybackControls,
+                    "Raid Systems must provide visible playback controls and start the demo at 0.25x speed.",
+                    failures);
                 Check(generator != null && generator.RandomizeSeedOnPlay,
                     "Dungeon Tiles must own a room-first generator configured to roll a new demo seed on Play.",
                     failures);
+                // The lookup arrays are runtime-only; rebuild them from the
+                // serialized generated geometry when validating a reopened scene.
+                Check(navigation != null && navigation.RebuildFromGeneratedGeometry() && navigation.IsReady,
+                    "The generated dungeon must bake a ready 2D navigation grid from its rooms, corridors, and Collider2D blockers.",
+                    failures);
                 Check(party != null && party.Members.Count == 6,
                     "The raid party must reference all six authored hunters.", failures);
-                Check(pods.Length == 1 && pods[0].Members.Count == 6,
-                    "Squad 1 must be a generic six-member enemy pod.", failures);
+                Check(pods.Length == 4 &&
+                      pods.OrderBy(pod => pod.Order).Select(pod => pod.Members.Count)
+                          .SequenceEqual(new[] { 6, 6, 7, 1 }),
+                    "The raid must contain three ordered goblin squads (6/6/7) and one final boss.",
+                    failures);
+                Check(pods.Select(pod => pod.Order).Distinct().Count() == pods.Length &&
+                      pods.Max(pod => pod.Order) == 3 &&
+                      pods.OrderBy(pod => pod.Order).Last().DisplayName == "Goblin Warlord",
+                    "Enemy pod ordering must end with the distinct Goblin Warlord encounter.",
+                    failures);
                 Check(rooms.Length >= 8,
                     "The generated greybox must contain at least eight active rooms.",
                     failures);
@@ -369,6 +459,21 @@ namespace Turtle.DungeonRaid.Editor
                     "The generated room graph must be connected by valid room connections.", failures);
                 Check(connections.All(candidate => candidate.WaypointCount >= 2),
                     "Every generated corridor must expose a multi-point traversal route.", failures);
+                Check(rooms.All(room => Mathf.Min(room.Size.x, room.Size.y) >= 18f),
+                    "Every active generated room must provide at least 18 world units on its narrow axis for party combat.",
+                    failures);
+                Check(connections.All(candidate => candidate.Width >= 7f),
+                    "Every active generated corridor must be at least seven world units wide.", failures);
+                Check(connections.All(candidate =>
+                    {
+                        var expectedWalls = Mathf.Max(0, (candidate.WaypointCount - 1) * 2);
+                        var solidWalls = candidate
+                            .GetComponentsInChildren<BoxCollider2D>()
+                            .Count(collider => !collider.isTrigger && IsWall(collider.name));
+                        return expectedWalls > 0 && solidWalls >= expectedWalls;
+                    }),
+                    "Every generated corridor segment must have two continuous solid wall rails.",
+                    failures);
                 Check(markers.Count(marker => marker.Kind == RaidSpawnMarkerKind.Party) >= 1 &&
                       markers.Count(marker => marker.Kind == RaidSpawnMarkerKind.EnemyPod) >= 2 &&
                       markers.Count(marker => marker.Kind == RaidSpawnMarkerKind.Boss) == 1 &&
@@ -378,10 +483,32 @@ namespace Turtle.DungeonRaid.Editor
                     failures);
                 Check(chests.Length == 1 && !chests[0].IsOpened,
                     "The Tier 1 chest must begin closed.", failures);
-                Check(agents.Length == 12 && agents.All(agent =>
+                Check(agents.Length == 26 && agents.All(agent =>
                         agent != null && !string.IsNullOrWhiteSpace(agent.AgentId) &&
                         agent.GetComponent<SpriteRenderer>()?.sprite != null),
-                    "All six hunters and six goblins must be configured as visible raid agents.", failures);
+                    "All six hunters, nineteen goblins, and the Goblin Warlord must be visible raid agents.",
+                    failures);
+                Check(navigation != null && agents.All(agent => agent.Navigation == navigation),
+                    "Every hunter and monster must reference the shared generated 2D navigation grid.", failures);
+                var generatedObstacles = navigation?.GeometryRoot != null
+                    ? navigation.GeometryRoot.GetComponentsInChildren<BoxCollider2D>()
+                        .Where(collider => collider.name.StartsWith(
+                            "Obstacle", StringComparison.OrdinalIgnoreCase))
+                        .ToArray()
+                    : Array.Empty<BoxCollider2D>();
+                Check(generatedObstacles.Length > 0 && generatedObstacles.All(collider =>
+                        !navigation.IsWalkable(collider.transform.TransformPoint(collider.offset))),
+                    "Every generated obstacle center must be excluded from the baked navigation grid.",
+                    failures);
+                foreach (var collider in generatedObstacles.Where(collider =>
+                             navigation.IsWalkable(collider.transform.TransformPoint(collider.offset))))
+                {
+                    var center = (Vector2)collider.transform.TransformPoint(collider.offset);
+                    failures.Add(
+                        $"Obstacle '{collider.name}' center {center} remained walkable; " +
+                        $"direct geometry block={navigation.IsBlockedByCurrentGeometry(center)}, " +
+                        $"size={collider.size}, scale={collider.transform.lossyScale}.");
+                }
                 Check(agents.All(agent =>
                         agent.GetComponent<Rigidbody2D>() is { bodyType: RigidbodyType2D.Dynamic } body &&
                         Mathf.Approximately(body.gravityScale, 0f) &&
@@ -426,8 +553,27 @@ namespace Turtle.DungeonRaid.Editor
                 Check(requiredAbilityIds.All(authoredAbilityIds.Contains),
                     "The six-hunter fixture must expose all twelve requested prototype abilities.",
                     failures);
+                var unauthorizedShieldOwners = agents
+                    .Where(agent => agent.Abilities.Any(ability =>
+                        ability != null && ability.effect == RaidAbilityEffect.Shield))
+                    .Where(agent => agent.Faction != RaidFaction.Hunters ||
+                                    agent.Role != RaidCombatRole.Tank)
+                    .Select(agent => agent.DisplayName)
+                    .ToArray();
+                Check(unauthorizedShieldOwners.Length == 0,
+                    "Only the hunter Tanker may own a temporary-shield ability. Invalid owners: " +
+                    string.Join(", ", unauthorizedShieldOwners),
+                    failures);
                 Check(camera != null && camera.orthographic,
                     "Demo Dungeon must use an orthographic top-down camera.", failures);
+
+                var entrance = rooms.FirstOrDefault(room => room.Purpose == RaidRoomPurpose.Entrance);
+                var boss = rooms.FirstOrDefault(room => room.Purpose == RaidRoomPurpose.Boss);
+                var navigationPath = new List<Vector2>();
+                Check(navigation != null && entrance != null && boss != null &&
+                      navigation.TryFindPath(entrance.Center, boss.Center, navigationPath) &&
+                      navigationPath.Count >= 2,
+                    "The baked 2D navigation grid must expose a traversable route from entrance to boss.", failures);
 
                 var deterministicA = DungeonRoomFirstPlanner2D.Create(42817);
                 var deterministicB = DungeonRoomFirstPlanner2D.Create(42817);
@@ -437,8 +583,11 @@ namespace Turtle.DungeonRaid.Editor
                 for (var seed = 8100; seed < 8112; seed++)
                 {
                     var plan = DungeonRoomFirstPlanner2D.Create(seed);
-                    Check(DungeonRoomFirstPlanner2D.Validate(plan, out _),
-                        $"Generated validation sample seed {seed} must be connected and valid.", failures);
+                    var isValid = DungeonRoomFirstPlanner2D.Validate(plan, out var validationReason);
+                    Check(isValid,
+                        $"Generated validation sample seed {seed} must be connected and valid. " +
+                        validationReason,
+                        failures);
                     signatures.Add(plan.StructuralSignature());
                 }
                 Check(signatures.Count >= 10,
@@ -893,7 +1042,40 @@ namespace Turtle.DungeonRaid.Editor
             return result;
         }
 
-        private static List<RaidAgent2D> ConfigureMonsters(Transform root)
+        private static void EnsureMonsterRoster(
+            Transform root,
+            SpriteRenderer template,
+            IReadOnlyList<string> actorNames,
+            float scale = 0.65f)
+        {
+            for (var index = 0; index < actorNames.Count; index++)
+            {
+                var actorName = actorNames[index];
+                var actor = FindChild(root, actorName);
+                if (actor == null)
+                {
+                    actor = new GameObject(actorName);
+                    Undo.RegisterCreatedObjectUndo(actor, "Populate dungeon monster roster");
+                    actor.transform.SetParent(root, false);
+                }
+
+                Undo.RecordObject(actor.transform, "Configure dungeon monster roster");
+                actor.transform.localPosition = Vector3.zero;
+                actor.transform.localRotation = Quaternion.identity;
+                actor.transform.localScale = Vector3.one * scale;
+
+                var renderer = GetOrAdd<SpriteRenderer>(actor);
+                Undo.RecordObject(renderer, "Configure dungeon monster visual");
+                renderer.sprite = template.sprite;
+                renderer.sharedMaterial = template.sharedMaterial;
+                renderer.sortingLayerID = template.sortingLayerID;
+                renderer.sortingOrder = 25;
+                renderer.color = Color.white;
+                MarkDirty(renderer);
+            }
+        }
+
+        private static List<RaidAgent2D> ConfigureMonsters(Transform root, string podId)
         {
             var result = new List<RaidAgent2D>();
             var roleCounts = new Dictionary<RaidCombatRole, int>();
@@ -902,24 +1084,26 @@ namespace Turtle.DungeonRaid.Editor
                 var child = root.GetChild(index);
                 if (child.GetComponent<SpriteRenderer>() == null) continue;
                 var normalized = NormalizeName(child.name);
-                var role = normalized.Contains("Sergeant", StringComparison.OrdinalIgnoreCase)
+                var isBoss = normalized.Contains("Boss", StringComparison.OrdinalIgnoreCase) ||
+                             normalized.Contains("Warlord", StringComparison.OrdinalIgnoreCase);
+                var role = isBoss || normalized.Contains("Sergeant", StringComparison.OrdinalIgnoreCase)
                     ? RaidCombatRole.Elite
                     : normalized.Contains("Bow", StringComparison.OrdinalIgnoreCase)
                         ? RaidCombatRole.Archer
                         : RaidCombatRole.Melee;
                 roleCounts.TryGetValue(role, out var roleIndex);
                 roleCounts[role] = ++roleIndex;
-                var profile = MonsterProfile(role);
+                var profile = isBoss ? BossProfile() : MonsterProfile(role);
                 ConfigureAgentPhysics(child.gameObject);
                 var agent = GetOrAddSingle<RaidAgent2D>(child.gameObject);
-                var label = role switch
+                var label = isBoss ? "Goblin Warlord" : role switch
                 {
                     RaidCombatRole.Elite => "Goblin Sergeant",
                     RaidCombatRole.Archer => $"Goblin Bowman {roleIndex}",
                     _ => $"Goblin Swordsman {roleIndex}"
                 };
                 agent.ConfigureEditor(
-                    $"goblin-{role.ToString().ToLowerInvariant()}-{roleIndex:00}",
+                    $"{podId}-{(isBoss ? "warlord" : role.ToString().ToLowerInvariant())}-{roleIndex:00}",
                     label,
                     RaidFaction.Monsters,
                     role,
@@ -933,7 +1117,8 @@ namespace Turtle.DungeonRaid.Editor
                     profile.AttackCooldown,
                     profile.Ranged,
                     profile.Color,
-                    profile.Abilities);
+                    profile.Abilities,
+                    isBoss ? 0.7f : 0.45f);
                 MarkDirty(
                     agent,
                     child.GetComponent<SpriteRenderer>(),
@@ -985,7 +1170,7 @@ namespace Turtle.DungeonRaid.Editor
                     Abilities = new List<RaidAbilitySpec>
                     {
                         Ability("tank.bulwark", "Bulwark", RaidAbilityEffect.Shield,
-                            1f, 8f, 50f, 30f, 22f, new Color(0.65f, 0.92f, 1f),
+                            1f, 8f, 50f, 30f, 22f, new Color(1f, 0.96f, 0.78f),
                             duration: 12f, shape: RaidAttackShape.Circle, maximumTargets: 64),
                         Ability("tank.challenge", "Challenge", RaidAbilityEffect.Taunt,
                             1f, 15f, 0f, 8f, 18f, new Color(0.2f, 0.8f, 1f),
@@ -1103,8 +1288,10 @@ namespace Turtle.DungeonRaid.Editor
                     Color = new Color(0.78f, 0.12f, 0.05f),
                     Abilities = new List<RaidAbilitySpec>
                     {
-                        Ability("goblin.sergeant-guard", "Sergeant's Guard", RaidAbilityEffect.Shield,
-                            1f, 4f, 38f, 6.5f, 20f, new Color(1f, 0.42f, 0.12f))
+                        Ability("goblin.sergeant-rally", "Sergeant's Rally",
+                            RaidAbilityEffect.DamageAndBuffAllies,
+                            1.7f, 4f, 18f, 8f, 20f, new Color(1f, 0.42f, 0.12f),
+                            duration: 5f, secondaryPower: 1.12f)
                     }
                 },
                 RaidCombatRole.Archer => new AgentProfile
@@ -1125,6 +1312,38 @@ namespace Turtle.DungeonRaid.Editor
                     Speed = 4f, Damage = 15f, AttackRange = 1.35f,
                     PreferredRange = 1.05f, AttackCooldown = 0.95f,
                     Color = new Color(0.72f, 0.05f, 0.03f)
+                }
+            };
+        }
+
+        private static AgentProfile BossProfile()
+        {
+            return new AgentProfile
+            {
+                Role = RaidCombatRole.Elite,
+                Health = 850f,
+                Mana = 180f,
+                ManaRegeneration = 9f,
+                Speed = 3.75f,
+                Damage = 30f,
+                AttackRange = 1.9f,
+                PreferredRange = 1.35f,
+                AttackCooldown = 0.92f,
+                Color = new Color(0.58f, 0.025f, 0.08f),
+                Abilities = new List<RaidAbilitySpec>
+                {
+                    Ability("boss.warlord-cleave", "Warlord Cleave",
+                        RaidAbilityEffect.AreaDamage,
+                        2.4f, 3.4f, 44f, 5f, 22f, new Color(1f, 0.12f, 0.04f),
+                        shape: RaidAttackShape.Cone, maximumTargets: 6, width: 0.7f),
+                    Ability("boss.warlord-chain", "Blood Chain",
+                        RaidAbilityEffect.ChainDamage,
+                        8f, 5f, 30f, 8f, 30f, new Color(0.95f, 0.04f, 0.22f),
+                        maximumTargets: 4, multiplier: 0.72f),
+                    Ability("boss.warlord-roar", "Warlord's Roar",
+                        RaidAbilityEffect.AreaDamage,
+                        1f, 3.4f, 28f, 12f, 35f, new Color(1f, 0.5f, 0.18f),
+                        shape: RaidAttackShape.Circle, maximumTargets: 6)
                 }
             };
         }

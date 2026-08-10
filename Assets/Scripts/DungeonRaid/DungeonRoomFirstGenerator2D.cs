@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -11,6 +12,7 @@ namespace Turtle.DungeonRaid
     /// </summary>
     [DefaultExecutionOrder(-1000)]
     [DisallowMultipleComponent]
+    [RequireComponent(typeof(DungeonNavigationGrid2D))]
     public sealed class DungeonRoomFirstGenerator2D : MonoBehaviour
     {
         [Flags]
@@ -34,19 +36,26 @@ namespace Turtle.DungeonRaid
         [SerializeField] private DungeonRaidDirector2D director;
         [SerializeField] private RaidPartyBrain2D party;
         [SerializeField] private RaidEnemyPodBrain2D primaryEnemyPod;
+        [SerializeField] private RaidEnemyPodBrain2D[] encounterPods =
+            Array.Empty<RaidEnemyPodBrain2D>();
+        [SerializeField] private RaidEnemyPodBrain2D bossPod;
         [SerializeField] private RaidChest2D primaryChest;
         [SerializeField] private Sprite floorSprite;
         [SerializeField] private Sprite wallSprite;
+        [SerializeField] private DungeonNavigationGrid2D navigation;
 
         private readonly List<RaidRoom2D> generatedRooms = new(16);
         private readonly List<RaidRoomConnection2D> generatedConnections = new(20);
+        private readonly List<DungeonCorridorWallSegment2D> corridorWallSegments = new(12);
         private DungeonRoomFirstPlan2D currentPlan;
+        private Coroutine pendingNavigationRefresh;
 
         public int PreviewSeed => previewSeed;
         public int CurrentSeed => currentSeed;
         public bool RandomizeSeedOnPlay => randomizeSeedOnPlay;
         public IReadOnlyList<RaidRoom2D> GeneratedRooms => generatedRooms;
         public IReadOnlyList<RaidRoomConnection2D> GeneratedConnections => generatedConnections;
+        public DungeonNavigationGrid2D Navigation => navigation;
 
         private void Awake()
         {
@@ -59,6 +68,7 @@ namespace Turtle.DungeonRaid
         private void OnValidate()
         {
             settings ??= new DungeonRoomFirstSettings2D();
+            settings.EnsurePartyScaleDefaults();
             settings.Sanitize();
         }
 
@@ -77,6 +87,9 @@ namespace Turtle.DungeonRaid
                 return;
             }
 
+            settings ??= new DungeonRoomFirstSettings2D();
+            settings.EnsurePartyScaleDefaults();
+            settings.Sanitize();
             currentPlan = DungeonRoomFirstPlanner2D.Create(seed, settings);
             if (!DungeonRoomFirstPlanner2D.Validate(currentPlan, out var reason))
             {
@@ -86,7 +99,9 @@ namespace Turtle.DungeonRaid
             currentSeed = seed;
             RecreateGeneratedRoot();
             MaterializePlan(currentPlan);
+            RebuildNavigation();
             BindRaidFixture(currentPlan);
+            ScheduleRuntimeNavigationRefresh();
         }
 
         public void GenerateFromStoredGateSeed(int mapSeed)
@@ -175,6 +190,28 @@ namespace Turtle.DungeonRaid
                 CreateCorridorSegment(connectionObject.transform, index, start, end, plan.Width);
             }
 
+            if (!DungeonCorridorContainment2D.TryBuildWallSegments(
+                    plan.Waypoints,
+                    plan.Width,
+                    DungeonCorridorContainment2D.DefaultWallThickness,
+                    corridorWallSegments,
+                    out var containmentReason))
+            {
+                throw new InvalidOperationException(
+                    $"Corridor {plan.FromRoomId}-{plan.ToRoomId} could not create continuous walls: {containmentReason}");
+            }
+            var wallsPerSide = plan.Waypoints.Count - 1;
+            for (var index = 0; index < corridorWallSegments.Count; index++)
+            {
+                var side = index < wallsPerSide ? "Left" : "Right";
+                var sideIndex = index % wallsPerSide;
+                CreateCorridorWallSegment(
+                    connectionObject.transform,
+                    side,
+                    sideIndex,
+                    corridorWallSegments[index]);
+            }
+
             var worldWaypoints = plan.Waypoints
                 .Select(point => (Vector2)generatedRoot.TransformPoint(point))
                 .ToArray();
@@ -198,30 +235,24 @@ namespace Turtle.DungeonRaid
             var size = horizontal ? new Vector2(length + 0.2f, width) : new Vector2(width, length + 0.2f);
             CreateRect(parent, $"Floor {index:00}", localCenter, size, floorSprite,
                 new Color(0.18f, 0.25f, 0.27f), -19, false);
+        }
 
-            const float wallThickness = 0.5f;
-            var railLength = Mathf.Max(0f, length - width * 0.9f);
-            if (railLength < 0.75f) return;
-            if (horizontal)
-            {
-                var railSize = new Vector2(railLength, wallThickness);
-                CreateRect(parent, $"Wall {index:00} North",
-                    localCenter + Vector2.up * (width * 0.5f + wallThickness * 0.5f),
-                    railSize, wallSprite, WallColor, -5, true);
-                CreateRect(parent, $"Wall {index:00} South",
-                    localCenter + Vector2.down * (width * 0.5f + wallThickness * 0.5f),
-                    railSize, wallSprite, WallColor, -5, true);
-            }
-            else
-            {
-                var railSize = new Vector2(wallThickness, railLength);
-                CreateRect(parent, $"Wall {index:00} East",
-                    localCenter + Vector2.right * (width * 0.5f + wallThickness * 0.5f),
-                    railSize, wallSprite, WallColor, -5, true);
-                CreateRect(parent, $"Wall {index:00} West",
-                    localCenter + Vector2.left * (width * 0.5f + wallThickness * 0.5f),
-                    railSize, wallSprite, WallColor, -5, true);
-            }
+        private void CreateCorridorWallSegment(
+            Transform parent,
+            string side,
+            int index,
+            DungeonCorridorWallSegment2D segment)
+        {
+            var localCenter = (segment.Start + segment.End) * 0.5f -
+                              (Vector2)parent.localPosition;
+            var delta = segment.End - segment.Start;
+            var horizontal = Mathf.Abs(delta.x) >= Mathf.Abs(delta.y);
+            var thickness = DungeonCorridorContainment2D.DefaultWallThickness;
+            var size = horizontal
+                ? new Vector2(segment.Length + thickness, thickness)
+                : new Vector2(thickness, segment.Length + thickness);
+            CreateRect(parent, $"Wall {side} {index:00}", localCenter, size,
+                wallSprite, WallColor, -5, true);
         }
 
         private void CreateRoomWalls(Transform room, Vector2 size, DoorSides doors, float doorWidth)
@@ -364,27 +395,106 @@ namespace Turtle.DungeonRaid
         private void BindRaidFixture(DungeonRoomFirstPlan2D plan)
         {
             var entrance = generatedRooms.First(room => room.Purpose == RaidRoomPurpose.Entrance);
-            var encounter = generatedRooms
-                .Where(room => room.Purpose == RaidRoomPurpose.Encounter)
-                .OrderByDescending(room => room.Sequence)
-                .FirstOrDefault() ?? generatedRooms.First(room => room.Purpose == RaidRoomPurpose.Boss);
+            var bossRoom = generatedRooms.First(room => room.Purpose == RaidRoomPurpose.Boss);
+            var combatRooms = generatedRooms
+                .Where(room => room.Purpose is RaidRoomPurpose.Encounter or RaidRoomPurpose.Transition)
+                .OrderBy(room => room.Sequence)
+                .ThenBy(room => room.RoomId, StringComparer.Ordinal)
+                .ToArray();
+            if (combatRooms.Length == 0) combatRooms = new[] { bossRoom };
 
             if (party != null)
             {
                 PlaceFormation(party.Members, entrance.Center, 1.35f, -1.5f);
             }
-            if (primaryEnemyPod != null)
+
+            var activeEncounterPods = encounterPods is { Length: > 0 }
+                ? encounterPods
+                : primaryEnemyPod != null
+                    ? new[] { primaryEnemyPod }
+                    : Array.Empty<RaidEnemyPodBrain2D>();
+            RaidRoom2D firstEncounterRoom = null;
+            for (var index = 0; index < activeEncounterPods.Length; index++)
             {
-                primaryEnemyPod.BindGeneratedRoom(encounter, Mathf.Max(8f, Mathf.Min(encounter.Size.x, encounter.Size.y) * 0.55f));
-                PlaceFormation(primaryEnemyPod.Members, encounter.Center, 1.4f, 1.1f);
+                var pod = activeEncounterPods[index];
+                if (pod == null) continue;
+                var room = combatRooms[Mathf.Min(index, combatRooms.Length - 1)];
+                firstEncounterRoom ??= room;
+                pod.BindGeneratedRoom(room,
+                    Mathf.Max(8f, Mathf.Min(room.Size.x, room.Size.y) * 0.55f));
+                PlaceFormation(pod.Members, room.Center, 1.55f, 1.55f);
+            }
+            if (bossPod != null)
+            {
+                bossPod.BindGeneratedRoom(bossRoom,
+                    Mathf.Max(11f, Mathf.Min(bossRoom.Size.x, bossRoom.Size.y) * 0.48f));
+                PlaceFormation(bossPod.Members, bossRoom.Center, 1.4f, 1.4f);
             }
             if (primaryChest != null)
             {
-                primaryChest.transform.position = encounter.Center +
-                                                  new Vector2(encounter.Size.x * 0.3f,
-                                                      -encounter.Size.y * 0.3f);
+                var chestRoom = firstEncounterRoom ?? bossRoom;
+                primaryChest.transform.position = chestRoom.Center +
+                                                  new Vector2(chestRoom.Size.x * 0.3f,
+                                                      -chestRoom.Size.y * 0.3f);
             }
             director?.ConfigureGeneratedLayout(generatedRooms.ToArray(), generatedConnections.ToArray());
+            BindNavigationToAgents();
+        }
+
+        private void RebuildNavigation()
+        {
+            if (navigation == null) navigation = GetComponent<DungeonNavigationGrid2D>();
+            if (navigation == null) navigation = gameObject.AddComponent<DungeonNavigationGrid2D>();
+            if (!navigation.Rebuild(generatedRoot, generatedRooms, generatedConnections))
+            {
+                throw new InvalidOperationException(
+                    $"Generated dungeon seed {currentSeed} did not produce a traversable 2D navigation grid.");
+            }
+        }
+
+        private void ScheduleRuntimeNavigationRefresh()
+        {
+            if (!Application.isPlaying) return;
+            if (pendingNavigationRefresh != null)
+            {
+                StopCoroutine(pendingNavigationRefresh);
+            }
+            pendingNavigationRefresh = StartCoroutine(RefreshNavigationAfterPhysicsStep());
+        }
+
+        private IEnumerator RefreshNavigationAfterPhysicsStep()
+        {
+            yield return new WaitForFixedUpdate();
+            Physics2D.SyncTransforms();
+            RebuildNavigation();
+            BindNavigationToAgents();
+            pendingNavigationRefresh = null;
+        }
+
+        private void BindNavigationToAgents()
+        {
+            if (navigation == null) return;
+            if (director != null)
+            {
+                BindNavigation(director.Hunters);
+                BindNavigation(director.Monsters);
+            }
+            BindNavigation(party?.Members);
+            BindNavigation(primaryEnemyPod?.Members);
+            for (var index = 0; index < encounterPods.Length; index++)
+            {
+                BindNavigation(encounterPods[index]?.Members);
+            }
+            BindNavigation(bossPod?.Members);
+        }
+
+        private void BindNavigation(IReadOnlyList<RaidAgent2D> agents)
+        {
+            if (agents == null) return;
+            for (var index = 0; index < agents.Count; index++)
+            {
+                agents[index]?.BindNavigation(navigation);
+            }
         }
 
         private static void PlaceFormation(
@@ -498,7 +608,8 @@ namespace Turtle.DungeonRaid
             bool rollNewSeedOnPlay,
             DungeonRaidDirector2D assignedDirector,
             RaidPartyBrain2D assignedParty,
-            RaidEnemyPodBrain2D assignedPod,
+            RaidEnemyPodBrain2D[] assignedEncounterPods,
+            RaidEnemyPodBrain2D assignedBossPod,
             RaidChest2D assignedChest,
             Sprite assignedFloorSprite,
             Sprite assignedWallSprite)
@@ -507,12 +618,16 @@ namespace Turtle.DungeonRaid
             randomizeSeedOnPlay = rollNewSeedOnPlay;
             director = assignedDirector;
             party = assignedParty;
-            primaryEnemyPod = assignedPod;
+            encounterPods = assignedEncounterPods ?? Array.Empty<RaidEnemyPodBrain2D>();
+            primaryEnemyPod = encounterPods.FirstOrDefault();
+            bossPod = assignedBossPod;
             primaryChest = assignedChest;
             floorSprite = assignedFloorSprite;
             wallSprite = assignedWallSprite;
             settings ??= new DungeonRoomFirstSettings2D();
+            settings.EnsurePartyScaleDefaults();
             settings.Sanitize();
+            navigation = GetComponent<DungeonNavigationGrid2D>();
         }
 #endif
     }

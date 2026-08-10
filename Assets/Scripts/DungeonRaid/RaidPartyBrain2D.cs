@@ -40,7 +40,7 @@ namespace Turtle.DungeonRaid
         public void Tick(DungeonRaidDirector2D raid, float raidTime)
         {
             if (raid == null || phase is RaidPartyPhase.Complete or RaidPartyPhase.Failed) return;
-            if (!HasActiveMember())
+            if (!HasMemberAbleToContinue())
             {
                 Transition(RaidPartyPhase.Failed, raid, raidTime,
                     "The strike team can no longer continue the raid.");
@@ -318,11 +318,13 @@ namespace Turtle.DungeonRaid
             return best;
         }
 
-        private bool HasActiveMember()
+        private bool HasMemberAbleToContinue()
         {
             for (var index = 0; index < members.Count; index++)
             {
-                if (members[index] != null && members[index].CanAct) return true;
+                // Crowd control pauses a hunter's actions without turning a
+                // temporary full-party stun into a raid failure.
+                if (members[index] != null && members[index].CanReceiveDamage) return true;
             }
             return false;
         }

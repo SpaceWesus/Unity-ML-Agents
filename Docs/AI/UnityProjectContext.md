@@ -49,6 +49,35 @@ Turtle is a Unity experimentation project containing ML-Agents turtle/racecar wo
 
 ## Scenes and startup
 
+- `Assets/Scenes/3D Test Arena.unity` is the perspective 3D counterpart to the
+  detailed Battle Test. Its arena architecture, four glowing horde gates,
+  central command dais, walls, cover, lighting, post-processing, baked 3D
+  NavMesh, three squad rally points, and thirty imported humanoid hunters are
+  serialized and visible outside Play Mode. The 220-monster opening wave uses a
+  360-body prewarmed pool, lightweight procedural monster views, pooled
+  projectiles/VFX, collider-authoritative melee/projectile/AOE contact, the same
+  thirty unique hunter profiles and ninety ability definitions, and a
+  commander -> sergeant -> individual decision hierarchy. The fixture includes
+  a responsive spectator HUD/camera and remains outside Build Settings. Its six
+  monster archetypes now re-pose one shared procedural rig into distinct pooled
+  silhouettes, while a 64-object world-space ring pool makes AOE, support, and
+  heavy-attack footprints readable without affecting combat authority. The
+  two-generation soak test verifies 30 + 220 sustained combat and exact
+  monster/projectile/telegraph pool reuse across restart.
+- `Assets/Scenes/Battle Test.unity` is the detailed three-squad horde-survival
+  stress fixture. Its 120x72 arena and thirty unique hunters persist in Edit
+  Mode; up to 600 escalating monsters are prewarmed and pooled at runtime. A
+  coalition commander assigns threatened gates, squad sergeants translate those
+  orders into anchors and focus targets, and individual aggression/cohesion/
+  support weights preserve local autonomy. The fixture exercises the shared
+  contact combat, cooldown, mana, status, AOE, persistent-field, and VFX stack
+  while exposing round, squad, individual, and performance telemetry. It is
+  intentionally excluded from Build Settings.
+- `Assets/Scenes/Battle Scale Test.unity` is the rendered mass-combat laboratory.
+  Its arena and references persist in Edit Mode; variable armies are pooled at
+  runtime. It supports 25v25 through 800v800 presets, a comparative auto-limit
+  benchmark, scale/full physics modes, and commander -> sergeant -> individual
+  AI. The scene is intentionally excluded from Build Settings.
 - Build Settings enable `Assets/Scenes/Turtle Scene.unity` and the ecosystem
   scenes; the v4 editor builder ensures `Assets/Scenes/2D Ecosystem.unity` is included.
 - Other first-party scenes include Homies, Drone Swarm, racecar variants, and the racetrack.
@@ -68,6 +97,26 @@ Turtle is a Unity experimentation project containing ML-Agents turtle/racecar wo
   directors. It is not a second persistence model: campaign integration must
   materialize and commit the existing `GateInstanceState` and
   `DungeonEncounterState`.
+- The Demo Dungeon combat fixture now contains three ordered goblin encounter
+  pods (6, 6, and 7 members) followed by a distinct Goblin Warlord boss. The
+  Warlord has a larger hurtbox, 850 health, cleave, chain-damage, and roar
+  abilities. The full fixture is 26 visible combatants and completes without
+  player input.
+- Demo Dungeon hunters begin with zero shield HP. Temporary shield HP is an
+  explicit hunter Tanker ability: Bulwark may be cast during an engagement,
+  affects the Tanker and nearby party members, and expires after 12 simulated
+  seconds. Non-tanker and monster abilities cannot grant shield HP.
+- `RaidPlaybackController2D` makes the fixture start at 0.25x global time while
+  presenting 0.25x, 0.5x, 1x, and 2x developer controls. It scales
+  the physics step with slow motion and restores the prior time settings when
+  disabled. The autonomous smoke harness temporarily overrides it to 4x.
+- `RaidHud2D` draws camera-projected status timers for visible living combatants
+  while a bottom-left strike-team panel keeps all hunter names, health, mana, and
+  ability readiness readable during clumped combat. These are read-only
+  projections of `RaidAgent2D`'s status and cooldown state. Pod and party defeat
+  checks use damageable survivors
+  rather than `CanAct`, preventing a stun from completing or failing the raid;
+  boss completion additionally requires the Warlord to be dead at zero health.
 - Demo Dungeon now includes a serialized room-first preview generated from seed
   `731245`. `DungeonRoomFirstPlanner2D` deterministically creates 8-12 rooms,
   graph-diameter entrance/boss placement, branches, optional loops, semantic
@@ -75,6 +124,18 @@ Turtle is a Unity experimentation project containing ML-Agents turtle/racecar wo
   `DungeonRoomFirstGenerator2D` materializes floors, collidable walls, props,
   sockets, and raid placement. The standalone demo rolls a new seed on Play for
   rapid variety testing; campaign gates will provide their persisted map seed.
+- Generated Demo Dungeon geometry bakes a shared `DungeonNavigationGrid2D` from
+  rooms, corridor routes, and inflated `BoxCollider2D` blockers. Every hunter
+  and monster receives that same navigation reference through `RaidAgent2D`,
+  while dynamic `Rigidbody2D` movement and local casts remain the final collision
+  authority. Unity AI Navigation remains installed for 3D scenes; its stock
+  surface collector does not consume this fixture's `Collider2D` geometry.
+- The 2D navigation bake uses explicit XY bounds for freshly generated
+  `BoxCollider2D` walls and obstacles, audits connectivity to every room, and
+  rebakes one physics step after runtime regeneration. Same-faction physical
+  collision is ignored to prevent doorway jams while colliders remain queryable
+  hurtboxes and retain solid world collision. Corridor progression uses a
+  living-party quorum, so one delayed hunter cannot freeze the entire raid.
 - Ecosystem world state saves to
   `Application.persistentDataPath/2d-ecosystem-v5.json`; sibling v4, v3, v2, and
   v1 files are retained as read-only import sources and are never overwritten
@@ -105,7 +166,7 @@ Turtle is a Unity experimentation project containing ML-Agents turtle/racecar wo
 
 Confirmed from `Packages/manifest.json`, `Packages/packages-lock.json`, `ProjectSettings/ProjectVersion.txt`, `ProjectSettings/EditorBuildSettings.asset`, `ProjectSettings/ProjectSettings.asset`, `README.md`, representative first-party scripts, `Assets/Scenes/Homies.unity`, and `Assets/Scenes/2D Ecosystem.unity`.
 
-Last updated for the v5 spatial 2D Ecosystem working tree: 2026-07-26.
+Last updated for the persistent 3D Test Arena mass-combat fixture: 2026-08-10.
 Baseline commit: `16f1653570783bcc1c3a0ead3bbaf8dd87533a6d`.
 
 <!-- unity-onboarding:generated:end -->

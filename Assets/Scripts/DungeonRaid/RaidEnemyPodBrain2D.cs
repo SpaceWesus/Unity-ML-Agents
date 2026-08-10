@@ -50,7 +50,7 @@ namespace Turtle.DungeonRaid
         public void Tick(DungeonRaidDirector2D raid, float raidTime)
         {
             if (phase == RaidPodPhase.Defeated) return;
-            if (!HasActiveMember())
+            if (!HasCombatantRemaining())
             {
                 Transition(RaidPodPhase.Defeated, raid, raidTime,
                     $"{displayName} was defeated. The room's chest is now unlocked.");
@@ -179,11 +179,13 @@ namespace Turtle.DungeonRaid
             return false;
         }
 
-        private bool HasActiveMember()
+        private bool HasCombatantRemaining()
         {
             for (var index = 0; index < members.Count; index++)
             {
-                if (members[index] != null && members[index].CanAct) return true;
+                // A stun temporarily prevents commands; it does not kill the
+                // combatant or satisfy the encounter's defeat condition.
+                if (members[index] != null && members[index].CanReceiveDamage) return true;
             }
             return false;
         }

@@ -132,6 +132,42 @@ namespace Turtle.DungeonRaid
         Lightning
     }
 
+    public enum RaidStatusEffectKind
+    {
+        TemporaryShield,
+        Taunted,
+        Stunned,
+        DamageUp,
+        Empowered,
+        Vulnerable,
+        Burning,
+        Downed
+    }
+
+    public enum RaidAbilityAvailability
+    {
+        Ready,
+        Cooldown,
+        InsufficientMana,
+        Incapacitated
+    }
+
+    /// <summary>
+    /// Read-only presentation projection of authoritative status state. The
+    /// combatant owns timers; HUDs and future world-space UI only consume them.
+    /// </summary>
+    public readonly struct RaidStatusEffectSnapshot
+    {
+        public RaidStatusEffectSnapshot(RaidStatusEffectKind kind, float remainingSeconds)
+        {
+            Kind = kind;
+            RemainingSeconds = Mathf.Max(0f, remainingSeconds);
+        }
+
+        public RaidStatusEffectKind Kind { get; }
+        public float RemainingSeconds { get; }
+    }
+
     /// <summary>
     /// Small, serializable prototype rule set. The AI reasons from effects, ranges,
     /// and costs rather than hunter names or a fixed party composition.
